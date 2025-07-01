@@ -26,7 +26,7 @@
     <parent>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast-root</artifactId>
-        <version>5.4.0</version>
+        <version>5.4.1-SR</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -300,6 +300,12 @@
                                     <artifact>com.fasterxml.jackson.core:*</artifact>
                                     <excludes>
                                         <exclude>META-INF/MANIFEST.MF</exclude>
+                                        <!--
+                                        jackson-core is multi-jar since 2.15.0
+                                        Excludes optimizations for later Java versions because we can't
+                                        process them in shade plugin while building for Java 8
+                                        -->
+                                        <exclude>META-INF/versions/**</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>
@@ -609,7 +615,7 @@
         <dependency>
             <groupId>com.hazelcast</groupId>
             <artifactId>hazelcast-tpc-engine</artifactId>
-            <version>5.4.0</version>
+            <version>5.4.1-SR</version>
         </dependency>
 
         <dependency>
