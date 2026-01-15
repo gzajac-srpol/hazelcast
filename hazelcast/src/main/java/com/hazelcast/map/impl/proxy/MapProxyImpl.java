@@ -109,7 +109,7 @@ import static java.util.Collections.emptyMap;
  * @param <K> the key type of map.
  * @param <V> the value type of map.
  */
-@SuppressWarnings({"checkstyle:classfanoutcomplexity", "checkstyle:ClassDataAbstractionCoupling"})
+@SuppressWarnings({"checkstyle:classfanoutcomplexity", "checkstyle:ClassDataAbstractionCoupling", "MethodCount"})
 public class MapProxyImpl<K, V> extends MapProxySupport<K, V> implements EventJournalReader<EventJournalMapEvent<K, V>> {
 
     public MapProxyImpl(String name, MapService mapService, NodeEngine nodeEngine, MapConfig mapConfig) {
@@ -394,15 +394,18 @@ public class MapProxyImpl<K, V> extends MapProxySupport<K, V> implements EventJo
                 putAsyncInternal(key, valueData, ttl, ttlUnit, maxIdle, maxIdleUnit));
     }
 
+    @Override
     public InternalCompletableFuture<V> putIfAbsentAsync(@Nonnull K key, @Nonnull V value) {
         return putIfAbsentAsync(key, value, UNSET, TimeUnit.MILLISECONDS);
     }
 
+    @Override
     public InternalCompletableFuture<V> putIfAbsentAsync(@Nonnull K key, @Nonnull V value,
-                                                    long ttl, @Nonnull TimeUnit timeunit) {
+                                                         long ttl, @Nonnull TimeUnit timeunit) {
         return putIfAbsentAsync(key, value, ttl, timeunit, UNSET, TimeUnit.MILLISECONDS);
     }
 
+    @Override
     public InternalCompletableFuture<V> putIfAbsentAsync(@Nonnull K key, @Nonnull V value,
                                                          long ttl, @Nonnull TimeUnit timeunit,
                                                          long maxIdle, @Nonnull TimeUnit maxIdleUnit) {
