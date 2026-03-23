@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-package com.hazelcast.cp.internal.raft.exception;
+package com.hazelcast.internal.serialization.impl;
 
-import java.io.IOException;
+import com.hazelcast.config.ClassFilter;
 
-/**
- * Thrown when a validation error occurs while restoring a Raft log from
- * persistent storage.
- */
-public class LogValidationException extends IOException {
-    public LogValidationException(String message) {
-        super(message);
-    }
+import javax.annotation.Nullable;
+
+public record ExtraReflectiveCompactSerializationRestrictions(@Nullable ClassFilter propertyAllowList,
+                                                              @Nullable ClassFilter propertyBlockList,
+                                                              @Nullable ClassFilter defaultBlockList) {
+    public static final ExtraReflectiveCompactSerializationRestrictions NO_RESTRICTIONS =
+            new ExtraReflectiveCompactSerializationRestrictions(null, null, null);
 }
