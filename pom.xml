@@ -23,7 +23,7 @@
     <groupId>com.hazelcast</groupId>
     <artifactId>hazelcast-root</artifactId>
     <packaging>pom</packaging>
-    <version>5.4.1-SR</version>
+    <version>5.4.3-SR</version>
     <name>Hazelcast Root</name>
     <description>Hazelcast In-Memory DataGrid</description>
     <url>http://www.hazelcast.com/</url>
@@ -100,7 +100,7 @@
         <hadoop.version>3.3.6</hadoop.version>
         <h2.version>2.2.224</h2.version>
         <!-- The Jackson version must match the version in EE, if you change this you must send EE PR as well -->
-        <jackson.version>2.15.2</jackson.version>
+        <jackson.version>2.21.4</jackson.version>
         <jackson.mapper.asl.version>1.9.14.jdk17-redhat-00001</jackson.mapper.asl.version>
         <jaxb.version>2.3.1</jaxb.version>
         <jline.version>3.25.1</jline.version>
