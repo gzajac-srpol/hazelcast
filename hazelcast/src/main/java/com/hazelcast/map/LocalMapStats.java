@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -169,14 +169,14 @@ public interface LocalMapStats extends LocalInstanceStats {
      *
      * @return number of <code>Map#values</code> calls
      */
-    long getValuesCallsCount();
+    long getValuesCallCount();
 
     /**
      * Returns the number of <code>Map#entrySet</code> calls
      *
      * @return the number of <code>Map#entrySet</code> calls
      */
-    long getEntrySetCallsCount();
+    long getEntrySetCallCount();
 
     /**
      * Returns the total latency of put operations. To get the average latency, divide by the number of puts
@@ -299,18 +299,9 @@ public interface LocalMapStats extends LocalInstanceStats {
     long getIndexedQueryCount();
 
     /**
-     * Increments throw count of {@link QueryResultSizeExceededException}
-     *
-     * @since 5.5
-     */
-    default void incrementQueryResultSizeExceededCount() {
-        // no-op for most classes, except IMap
-    }
-
-    /**
      * Get throw count of {@link QueryResultSizeExceededException}
      *
-     * @since 5.5
+     * @since 5.6
      */
     default long getQueryResultSizeExceededCount() {
         return 0L;

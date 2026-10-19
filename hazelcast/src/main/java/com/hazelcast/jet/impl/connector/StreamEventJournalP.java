@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,8 +69,8 @@ import static com.hazelcast.jet.Traversers.traverseStream;
 import static com.hazelcast.jet.Util.entry;
 import static com.hazelcast.jet.core.BroadcastKey.broadcastKey;
 import static com.hazelcast.jet.impl.execution.init.CustomClassLoadedObject.deserializeWithCustomClassLoader;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.peel;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.rethrow;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.peel;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.rethrow;
 import static com.hazelcast.jet.impl.util.ImdgUtil.maybeUnwrapImdgFunction;
 import static com.hazelcast.jet.impl.util.ImdgUtil.maybeUnwrapImdgPredicate;
 import static com.hazelcast.jet.impl.util.Util.checkSerializable;
@@ -159,13 +159,17 @@ public final class StreamEventJournalP<E, T> extends AbstractProcessor {
 
     @Override
     protected void init(@Nonnull Context context) throws Exception {
+        // We first subscribe and then read from the map journal.
+        // The initial offset is fixed at initialization time.
+        // The separate subscribe step ensures the offset is established
+        // even for empty partitions or partitions that haven’t produced
+        // any data in the snapshot yet.
         @SuppressWarnings("unchecked")
         CompletableFuture<EventJournalInitialSubscriberState>[] futures = new CompletableFuture[partitionIds.length];
         Arrays.setAll(futures, i -> eventJournalReader.subscribeToEventJournal(partitionIds[i]));
         for (int i = 0; i < futures.length; i++) {
             emitOffsets[i] = readOffsets[i] = getSequence(futures[i].get());
         }
-
         if (!isRemoteReader) {
             // try to serde projection/predicate to fail fast if they aren't known to IMDG
             HazelcastInstanceImpl hzInstance = Util.getHazelcastInstanceImpl(context.hazelcastInstance());
@@ -231,7 +235,7 @@ public final class StreamEventJournalP<E, T> extends AbstractProcessor {
                             broadcastKey(partitionIds[pIdx]),
                             // Always use partition index of 0, treating all the partitions the
                             // same for coalescing purposes.
-                            new long[] {emitOffsets[pIdx], eventTimeMapper.getWatermark(0)})));
+                            new long[]{emitOffsets[pIdx], eventTimeMapper.getWatermark(0)})));
         }
         boolean done = emitFromTraverserToSnapshot(snapshotTraverser);
         if (done) {
@@ -301,6 +305,7 @@ public final class StreamEventJournalP<E, T> extends AbstractProcessor {
                             + resultSet.getNextSequenceToReadFrom() + ", readCount=" + resultSet.readCount()
                             + ", prevSeq=" + prevSequence);
                 }
+
                 readOffsets[currentPartitionIndex] = resultSet.getNextSequenceToReadFrom();
             }
             // make another read on the same partition
@@ -336,7 +341,7 @@ public final class StreamEventJournalP<E, T> extends AbstractProcessor {
 
     private CompletableFuture<? extends ReadResultSet<? extends T>> readFromJournal(int partition, long offset) {
         return eventJournalReader.readFromEventJournal(offset, 1, MAX_FETCH_SIZE, partition, predicate, projection)
-                                 .toCompletableFuture();
+                .toCompletableFuture();
     }
 
     private static class ClusterMetaSupplier<E, T> implements ProcessorMetaSupplier {

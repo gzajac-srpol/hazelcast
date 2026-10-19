@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,14 +26,15 @@ import java.util.function.Supplier;
 public class BounceTestConfiguration {
 
     private final int clusterSize;
-    private final DriverType driverType;
     private final Supplier<Config> memberConfigSupplier;
-    private final int driverCount;
-    private final DriverFactory driverFactory;
+    private final DriverConfiguration driverConfig;
     private final boolean useTerminate;
     private final boolean avoidOverlappingTerminations;
     private final int bouncingIntervalSeconds;
     private final long maximumStaleSeconds;
+    private final boolean hasSteadyMember;
+    private final boolean shouldFailOnIncompleteTask;
+    private final int testTaskTimeoutSecs;
 
     /**
      * Indicates whether the test will be driven by member or client HazelcastInstances
@@ -58,27 +59,40 @@ public class BounceTestConfiguration {
         CLIENT,
     }
 
-    BounceTestConfiguration(int clusterSize, DriverType driverType,
-                            Supplier<Config> memberConfigSupplier, int driverCount,
-                            DriverFactory driverFactory, boolean useTerminate, boolean avoidOverlappingTerminations,
-                            int bouncingIntervalSeconds, long maximumStaleSeconds) {
+    record DriverConfiguration(DriverType type, int count, DriverFactory factory) {
+    }
+
+    BounceTestConfiguration(int clusterSize, DriverConfiguration driverConfig, Supplier<Config> memberConfigSupplier,
+                            boolean useTerminate, boolean avoidOverlappingTerminations, int bouncingIntervalSeconds,
+                            long maximumStaleSeconds, boolean hasSteadyMember, boolean shouldFailOnIncompleteTask,
+                            int testTaskTimeoutSecs) {
         this.clusterSize = clusterSize;
-        this.driverType = driverType;
+        this.driverConfig = driverConfig;
         this.memberConfigSupplier = memberConfigSupplier;
-        this.driverCount = driverCount;
-        this.driverFactory = driverFactory;
         this.useTerminate = useTerminate;
         this.avoidOverlappingTerminations = avoidOverlappingTerminations;
         this.bouncingIntervalSeconds = bouncingIntervalSeconds;
         this.maximumStaleSeconds = maximumStaleSeconds;
+        this.hasSteadyMember = hasSteadyMember;
+        this.shouldFailOnIncompleteTask = shouldFailOnIncompleteTask;
+        this.testTaskTimeoutSecs = testTaskTimeoutSecs;
     }
 
     public int getClusterSize() {
         return clusterSize;
     }
 
+    /**
+     * @return actual cluster size, including both requested members ({@link #getClusterSize()}
+     *         and test drivers is applicable
+     */
+    public int getEffectiveClusterSize() {
+        return clusterSize
+                + (getDriverType() == DriverType.MEMBER || getDriverType() == DriverType.LITE_MEMBER ? getDriverCount() : 0);
+    }
+
     public DriverType getDriverType() {
-        return driverType;
+        return driverConfig.type();
     }
 
     public Supplier<Config> getMemberConfigSupplier() {
@@ -86,11 +100,11 @@ public class BounceTestConfiguration {
     }
 
     public int getDriverCount() {
-        return driverCount;
+        return driverConfig.count;
     }
 
     public DriverFactory getDriverFactory() {
-        return driverFactory;
+        return driverConfig.factory();
     }
 
     public boolean isUseTerminate() {
@@ -107,5 +121,17 @@ public class BounceTestConfiguration {
 
     public long getMaximumStaleSeconds() {
         return maximumStaleSeconds;
+    }
+
+    public boolean hasSteadyMember() {
+        return hasSteadyMember;
+    }
+
+    public boolean shouldFailOnIncompleteTask() {
+        return shouldFailOnIncompleteTask;
+    }
+
+    public int getTestTaskTimeoutSecs() {
+        return testTaskTimeoutSecs;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 package com.hazelcast.internal.util.collection;
 
 import com.hazelcast.internal.util.QuickMath;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.*;
 
@@ -28,7 +27,7 @@ import java.util.*;
  * @param <K> type of keys stored in the {@link Map}
  */
 public class Object2LongHashMap<K>
-    implements Map<K, Long>
+    extends AbstractMap<K, Long>
 {
     private static final float DEFAULT_LOAD_FACTOR = 0.6F;
     private static final int MIN_CAPACITY = 8;
@@ -161,15 +160,6 @@ public class Object2LongHashMap<K>
     public int size()
     {
         return size;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isEmpty()
-    {
-        return 0 == size;
     }
 
     /**
@@ -382,17 +372,6 @@ public class Object2LongHashMap<K>
     {
         final int idealCapacity = (int)Math.round(size() * (1.0d / loadFactor));
         rehash(QuickMath.nextPowerOfTwo(Math.max(MIN_CAPACITY, idealCapacity)));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public void putAll(final Map<? extends K, ? extends Long> map)
-    {
-        for (final Entry<? extends K, ? extends Long> entry : map.entrySet())
-        {
-            put(entry.getKey(), entry.getValue());
-        }
     }
 
     /**
@@ -896,7 +875,6 @@ public class Object2LongHashMap<K>
         }
     }
 
-    @SuppressFBWarnings(value = "PZ_DONT_REUSE_ENTRY_OBJECTS_IN_ITERATORS")
     public final class EntryIterator
         extends AbstractIterator<Entry<K, Long>>
         implements Entry<K, Long>

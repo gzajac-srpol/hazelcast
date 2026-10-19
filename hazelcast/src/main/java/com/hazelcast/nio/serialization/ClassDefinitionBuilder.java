@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,7 +100,7 @@ public final class ClassDefinitionBuilder {
      * @deprecated for the sake of better naming. Use {@link #addStringField(String)} instead.
      */
     @Nonnull
-    @Deprecated
+    @Deprecated(since = "4.2", forRemoval = true)
     public ClassDefinitionBuilder addUTFField(@Nonnull String fieldName) {
         return addStringField(fieldName);
     }
@@ -346,7 +346,7 @@ public final class ClassDefinitionBuilder {
      * @deprecated for the sake of better naming. Use {@link #addStringArrayField(String)} instead.
      */
     @Nonnull
-    @Deprecated
+    @Deprecated(since = "4.2", forRemoval = true)
     public ClassDefinitionBuilder addUTFArrayField(@Nonnull String fieldName) {
         return addStringArrayField(fieldName);
     }

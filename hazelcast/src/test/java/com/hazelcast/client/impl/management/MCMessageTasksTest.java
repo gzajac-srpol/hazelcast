@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,6 +57,7 @@ import com.hazelcast.cluster.Address;
 import com.hazelcast.cluster.Cluster;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.WanReplicationRef;
+import com.hazelcast.core.HazelcastException;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.instance.BuildInfoProvider;
 import com.hazelcast.instance.impl.HazelcastInstanceProxy;
@@ -79,7 +80,6 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
-import static com.hazelcast.cp.CPSubsystemStubImpl.CP_SUBSYSTEM_IS_NOT_AVAILABLE_IN_OS_CLIENTS;
 import static com.hazelcast.internal.util.StringUtil.isNullOrEmptyAfterTrim;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
@@ -200,7 +200,7 @@ public class MCMessageTasksTest extends HazelcastTestSupport {
 
     @Test
     public void testGetCPMembersMessageTask() throws Exception {
-        assertFailure(MCGetCPMembersCodec.encodeRequest(), UnsupportedOperationException.class, CP_SUBSYSTEM_IS_NOT_AVAILABLE_IN_OS_CLIENTS);
+        assertFailure(MCGetCPMembersCodec.encodeRequest(), HazelcastException.class, "The CP Subsystem is disabled. To enable it, there must be at least 3 CP members.");
     }
 
     @Test
@@ -419,17 +419,20 @@ public class MCMessageTasksTest extends HazelcastTestSupport {
 
     @Test
     public void testPromoteToCPMemberMessageTask() throws Exception {
-        assertFailure(MCPromoteToCPMemberCodec.encodeRequest(), UnsupportedOperationException.class, CP_SUBSYSTEM_IS_NOT_AVAILABLE_IN_OS_CLIENTS);
+        assertFailure(MCPromoteToCPMemberCodec.encodeRequest(),
+                HazelcastException.class, "The CP Subsystem is disabled. To enable it, there must be at least 3 CP members.");
     }
 
     @Test
     public void testRemoveCPMemberMessageTask() throws Exception {
-        assertFailure(MCRemoveCPMemberCodec.encodeRequest(UUID.randomUUID()), UnsupportedOperationException.class, CP_SUBSYSTEM_IS_NOT_AVAILABLE_IN_OS_CLIENTS);
+        assertFailure(MCRemoveCPMemberCodec.encodeRequest(UUID.randomUUID()),
+                HazelcastException.class, "The CP Subsystem is disabled. To enable it, there must be at least 3 CP members.");
     }
 
     @Test
     public void testResetCPSubsystemMessageTask() throws Exception {
-        assertFailure(MCResetCPSubsystemCodec.encodeRequest(), UnsupportedOperationException.class, CP_SUBSYSTEM_IS_NOT_AVAILABLE_IN_OS_CLIENTS);
+        assertFailure(MCResetCPSubsystemCodec.encodeRequest(), HazelcastException.class,
+                "The CP Subsystem is disabled. To enable it, there must be at least 3 CP members.");
     }
 
     @Test
@@ -522,9 +525,9 @@ public class MCMessageTasksTest extends HazelcastTestSupport {
             fail("Execution was successful whereas failure was expected.");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            assertTrue("Cause is of type " + cause.getClass().toString(),
+            assertTrue("Cause is of type " + cause.getClass(),
                     cause.getClass().isAssignableFrom(expectedExceptionType));
-            assertEquals(expectedExceptionMsg, cause.getMessage());
+            assertContains(cause.getMessage(), expectedExceptionMsg);
         }
     }
 

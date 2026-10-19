@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -260,7 +260,7 @@ public class DefaultCompactWriter implements CompactWriter {
     @Override
     public void writeCompact(@Nonnull String fieldName, @Nullable Object value) {
         writeVariableSizeField(fieldName, COMPACT, value,
-                (out, val) -> serializer.writeObject(out, val, includeSchemaOnBinary));
+                (out, val) -> serializer.write(out, val, includeSchemaOnBinary));
     }
 
     public void writeGenericRecord(@Nonnull String fieldName, @Nullable GenericRecord value) {

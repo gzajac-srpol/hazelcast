@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,107 +17,41 @@
 package com.hazelcast.client.impl.protocol.task;
 
 import com.hazelcast.client.impl.protocol.ClientMessage;
-import com.hazelcast.client.impl.protocol.codec.AtomicLongAddAndGetCodec;
-import com.hazelcast.client.impl.protocol.codec.AtomicLongAlterCodec;
-import com.hazelcast.client.impl.protocol.codec.AtomicLongApplyCodec;
-import com.hazelcast.client.impl.protocol.codec.AtomicLongCompareAndSetCodec;
-import com.hazelcast.client.impl.protocol.codec.AtomicLongGetAndAddCodec;
-import com.hazelcast.client.impl.protocol.codec.AtomicLongGetAndSetCodec;
-import com.hazelcast.client.impl.protocol.codec.AtomicLongGetCodec;
-import com.hazelcast.client.impl.protocol.codec.AtomicRefApplyCodec;
-import com.hazelcast.client.impl.protocol.codec.AtomicRefCompareAndSetCodec;
-import com.hazelcast.client.impl.protocol.codec.AtomicRefContainsCodec;
-import com.hazelcast.client.impl.protocol.codec.AtomicRefGetCodec;
-import com.hazelcast.client.impl.protocol.codec.AtomicRefSetCodec;
-import com.hazelcast.client.impl.protocol.codec.CPGroupCreateCPGroupCodec;
-import com.hazelcast.client.impl.protocol.codec.CPGroupDestroyCPObjectCodec;
-import com.hazelcast.client.impl.protocol.codec.CPSessionCloseSessionCodec;
-import com.hazelcast.client.impl.protocol.codec.CPSessionCreateSessionCodec;
-import com.hazelcast.client.impl.protocol.codec.CPSessionGenerateThreadIdCodec;
-import com.hazelcast.client.impl.protocol.codec.CPSessionHeartbeatSessionCodec;
-import com.hazelcast.client.impl.protocol.codec.CPSubsystemAddGroupAvailabilityListenerCodec;
-import com.hazelcast.client.impl.protocol.codec.CPSubsystemAddMembershipListenerCodec;
-import com.hazelcast.client.impl.protocol.codec.CPSubsystemGetCPGroupIdsCodec;
-import com.hazelcast.client.impl.protocol.codec.CPSubsystemGetCPObjectInfosCodec;
-import com.hazelcast.client.impl.protocol.codec.CPSubsystemRemoveGroupAvailabilityListenerCodec;
-import com.hazelcast.client.impl.protocol.codec.CPSubsystemRemoveMembershipListenerCodec;
-import com.hazelcast.client.impl.protocol.codec.CountDownLatchAwaitCodec;
-import com.hazelcast.client.impl.protocol.codec.CountDownLatchCountDownCodec;
-import com.hazelcast.client.impl.protocol.codec.CountDownLatchGetCountCodec;
-import com.hazelcast.client.impl.protocol.codec.CountDownLatchGetRoundCodec;
-import com.hazelcast.client.impl.protocol.codec.CountDownLatchTrySetCountCodec;
-import com.hazelcast.client.impl.protocol.codec.FencedLockGetLockOwnershipCodec;
-import com.hazelcast.client.impl.protocol.codec.FencedLockLockCodec;
-import com.hazelcast.client.impl.protocol.codec.FencedLockTryLockCodec;
-import com.hazelcast.client.impl.protocol.codec.FencedLockUnlockCodec;
-import com.hazelcast.client.impl.protocol.codec.MCForceCloseCPSessionCodec;
-import com.hazelcast.client.impl.protocol.codec.MCGetCPMembersCodec;
-import com.hazelcast.client.impl.protocol.codec.MCPromoteToCPMemberCodec;
-import com.hazelcast.client.impl.protocol.codec.MCRemoveCPMemberCodec;
-import com.hazelcast.client.impl.protocol.codec.MCResetCPSubsystemCodec;
-import com.hazelcast.client.impl.protocol.codec.SemaphoreAcquireCodec;
-import com.hazelcast.client.impl.protocol.codec.SemaphoreAvailablePermitsCodec;
-import com.hazelcast.client.impl.protocol.codec.SemaphoreChangeCodec;
-import com.hazelcast.client.impl.protocol.codec.SemaphoreDrainCodec;
-import com.hazelcast.client.impl.protocol.codec.SemaphoreGetSemaphoreTypeCodec;
-import com.hazelcast.client.impl.protocol.codec.SemaphoreInitCodec;
-import com.hazelcast.client.impl.protocol.codec.SemaphoreReleaseCodec;
+import com.hazelcast.client.impl.protocol.codec.DynamicConfigAddVectorCollectionConfigCodec;
+import com.hazelcast.client.impl.protocol.codec.VectorCollectionClearCodec;
+import com.hazelcast.client.impl.protocol.codec.VectorCollectionDeleteCodec;
+import com.hazelcast.client.impl.protocol.codec.VectorCollectionGetCodec;
+import com.hazelcast.client.impl.protocol.codec.VectorCollectionOptimizeCodec;
+import com.hazelcast.client.impl.protocol.codec.VectorCollectionPutAllCodec;
+import com.hazelcast.client.impl.protocol.codec.VectorCollectionPutCodec;
+import com.hazelcast.client.impl.protocol.codec.VectorCollectionPutIfAbsentCodec;
+import com.hazelcast.client.impl.protocol.codec.VectorCollectionRemoveCodec;
+import com.hazelcast.client.impl.protocol.codec.VectorCollectionSearchNearVectorCodec;
+import com.hazelcast.client.impl.protocol.codec.VectorCollectionSetCodec;
+import com.hazelcast.client.impl.protocol.codec.VectorCollectionSizeCodec;
 import com.hazelcast.instance.impl.Node;
 import com.hazelcast.internal.nio.Connection;
 
 import java.security.Permission;
 import java.util.Set;
 
-import static com.hazelcast.cp.CPSubsystemStubImpl.CP_SUBSYSTEM_IS_NOT_AVAILABLE_IN_OS_CLIENTS;
+import static com.hazelcast.vector.impl.spi.VectorCollectionLocator.MISSED_VECTOR_MODULE_MESSAGE;
 
 public class NoSuchMessageTask extends AbstractMessageTask<ClientMessage> {
 
-    private static final Set<Integer> MOVED_CP_MESSAGE_TASKS = Set.of(
-            CPGroupCreateCPGroupCodec.REQUEST_MESSAGE_TYPE,
-            CPGroupDestroyCPObjectCodec.REQUEST_MESSAGE_TYPE,
-            CPSessionCreateSessionCodec.REQUEST_MESSAGE_TYPE,
-            CPSessionHeartbeatSessionCodec.REQUEST_MESSAGE_TYPE,
-            CPSessionCloseSessionCodec.REQUEST_MESSAGE_TYPE,
-            CPSessionGenerateThreadIdCodec.REQUEST_MESSAGE_TYPE,
-            CPSubsystemAddMembershipListenerCodec.REQUEST_MESSAGE_TYPE,
-            CPSubsystemRemoveMembershipListenerCodec.REQUEST_MESSAGE_TYPE,
-            CPSubsystemAddGroupAvailabilityListenerCodec.REQUEST_MESSAGE_TYPE,
-            CPSubsystemRemoveGroupAvailabilityListenerCodec.REQUEST_MESSAGE_TYPE,
-            CPSubsystemGetCPGroupIdsCodec.REQUEST_MESSAGE_TYPE,
-            CPSubsystemGetCPObjectInfosCodec.REQUEST_MESSAGE_TYPE,
-            AtomicLongAddAndGetCodec.REQUEST_MESSAGE_TYPE,
-            AtomicLongCompareAndSetCodec.REQUEST_MESSAGE_TYPE,
-            AtomicLongGetAndAddCodec.REQUEST_MESSAGE_TYPE,
-            AtomicLongGetCodec.REQUEST_MESSAGE_TYPE,
-            AtomicLongGetAndSetCodec.REQUEST_MESSAGE_TYPE,
-            AtomicLongApplyCodec.REQUEST_MESSAGE_TYPE,
-            AtomicLongAlterCodec.REQUEST_MESSAGE_TYPE,
-            AtomicRefApplyCodec.REQUEST_MESSAGE_TYPE,
-            AtomicRefSetCodec.REQUEST_MESSAGE_TYPE,
-            AtomicRefContainsCodec.REQUEST_MESSAGE_TYPE,
-            AtomicRefGetCodec.REQUEST_MESSAGE_TYPE,
-            AtomicRefCompareAndSetCodec.REQUEST_MESSAGE_TYPE,
-            CountDownLatchAwaitCodec.REQUEST_MESSAGE_TYPE,
-            CountDownLatchCountDownCodec.REQUEST_MESSAGE_TYPE,
-            CountDownLatchGetCountCodec.REQUEST_MESSAGE_TYPE,
-            CountDownLatchGetRoundCodec.REQUEST_MESSAGE_TYPE,
-            CountDownLatchTrySetCountCodec.REQUEST_MESSAGE_TYPE,
-            FencedLockLockCodec.REQUEST_MESSAGE_TYPE,
-            FencedLockTryLockCodec.REQUEST_MESSAGE_TYPE,
-            FencedLockUnlockCodec.REQUEST_MESSAGE_TYPE,
-            FencedLockGetLockOwnershipCodec.REQUEST_MESSAGE_TYPE,
-            SemaphoreAcquireCodec.REQUEST_MESSAGE_TYPE,
-            SemaphoreAvailablePermitsCodec.REQUEST_MESSAGE_TYPE,
-            SemaphoreChangeCodec.REQUEST_MESSAGE_TYPE,
-            SemaphoreDrainCodec.REQUEST_MESSAGE_TYPE,
-            SemaphoreGetSemaphoreTypeCodec.REQUEST_MESSAGE_TYPE,
-            SemaphoreInitCodec.REQUEST_MESSAGE_TYPE,
-            SemaphoreReleaseCodec.REQUEST_MESSAGE_TYPE,
-            MCGetCPMembersCodec.REQUEST_MESSAGE_TYPE,
-            MCPromoteToCPMemberCodec.REQUEST_MESSAGE_TYPE,
-            MCRemoveCPMemberCodec.REQUEST_MESSAGE_TYPE,
-            MCResetCPSubsystemCodec.REQUEST_MESSAGE_TYPE,
-            MCForceCloseCPSessionCodec.REQUEST_MESSAGE_TYPE
+    private static final Set<Integer> VECTOR_MESSAGE_TASKS = Set.of(
+            VectorCollectionGetCodec.REQUEST_MESSAGE_TYPE,
+            VectorCollectionPutCodec.REQUEST_MESSAGE_TYPE,
+            VectorCollectionPutIfAbsentCodec.REQUEST_MESSAGE_TYPE,
+            VectorCollectionPutAllCodec.REQUEST_MESSAGE_TYPE,
+            VectorCollectionSetCodec.REQUEST_MESSAGE_TYPE,
+            VectorCollectionDeleteCodec.REQUEST_MESSAGE_TYPE,
+            VectorCollectionRemoveCodec.REQUEST_MESSAGE_TYPE,
+            VectorCollectionSearchNearVectorCodec.REQUEST_MESSAGE_TYPE,
+            VectorCollectionOptimizeCodec.REQUEST_MESSAGE_TYPE,
+            VectorCollectionClearCodec.REQUEST_MESSAGE_TYPE,
+            VectorCollectionSizeCodec.REQUEST_MESSAGE_TYPE,
+            DynamicConfigAddVectorCollectionConfigCodec.REQUEST_MESSAGE_TYPE
     );
 
     public NoSuchMessageTask(ClientMessage clientMessage, Node node, Connection connection) {
@@ -136,7 +70,8 @@ public class NoSuchMessageTask extends AbstractMessageTask<ClientMessage> {
 
     @Override
     protected void processMessage() {
-        String message = createMessage();
+        int messageType = parameters.getMessageType();
+        String message = createMessage(messageType);
         logger.finest(message);
         throw new UnsupportedOperationException(message);
     }
@@ -171,15 +106,10 @@ public class NoSuchMessageTask extends AbstractMessageTask<ClientMessage> {
         return null;
     }
 
-    private String createMessage() {
-        int messageType = parameters.getMessageType();
-
-        // TODO RU_COMPAT_5_4 added for Version 5.4 compatibility, to provide a meaningful error message
-        //  to old clients after moving the CP subsystem to EE
-        if (MOVED_CP_MESSAGE_TASKS.contains(messageType)) {
-            return CP_SUBSYSTEM_IS_NOT_AVAILABLE_IN_OS_CLIENTS;
-        } else {
-            return "Unrecognized client message received with type: 0x" + Integer.toHexString(messageType);
+    private String createMessage(int messageType) {
+        if (VECTOR_MESSAGE_TASKS.contains(messageType)) {
+            return MISSED_VECTOR_MODULE_MESSAGE;
         }
+        return "Unrecognized client message received with type: 0x" + Integer.toHexString(messageType);
     }
 }

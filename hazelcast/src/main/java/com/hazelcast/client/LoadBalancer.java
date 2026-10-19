@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,9 +52,9 @@ public interface LoadBalancer {
      *
      * @throws UnsupportedOperationException if the operation is not supported by this instance
      * @since 4.2
-     * @deprecated Since 5.0, the method is unused
+     * @deprecated the method is unused
      */
-    @Deprecated
+    @Deprecated(since = "5.0", forRemoval = true)
     default Member nextDataMember() {
         throw new UnsupportedOperationException();
     }
@@ -64,9 +64,9 @@ public interface LoadBalancer {
      *
      * @see #nextDataMember()
      * @since 4.2
-     * @deprecated Since 5.0, the method is unused
+     * @deprecated the method is unused
      */
-    @Deprecated
+    @Deprecated(since = "5.0", forRemoval = true)
     default boolean canGetNextDataMember() {
         return false;
     }

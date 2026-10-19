@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -870,6 +870,8 @@ public class ConfigXmlGeneratorTest extends HazelcastTestSupport {
         CompactSerializationConfig expected = new CompactSerializationConfig();
         expected.addClass(EmployerDTO.class);
         expected.addSerializer(new EmployeeDTOSerializer());
+        expected.setZeroConfigFilter(new JavaSerializationFilterConfig().setDefaultsDisabled(true).setBlacklist(
+                new ClassFilter().addClasses("a.b.C").addPackages("a.b.c").addPrefixes("a.b.d.")));
 
         config.getSerializationConfig().setCompactSerializationConfig(expected);
 
@@ -896,6 +898,8 @@ public class ConfigXmlGeneratorTest extends HazelcastTestSupport {
                         .contains(registration.element1.getName());
             }
         }
+
+        assertThat(actual.getZeroConfigFilter()).isEqualTo(expected.getZeroConfigFilter());
     }
 
     private static class TypeClass {
@@ -916,6 +920,9 @@ public class ConfigXmlGeneratorTest extends HazelcastTestSupport {
             return 0;
         }
 
+        @Override
+        public void destroy() {
+        }
     }
 
     @Test
@@ -1120,7 +1127,8 @@ public class ConfigXmlGeneratorTest extends HazelcastTestSupport {
                 .setFailOnIndeterminateOperationState(true)
                 .setPersistenceEnabled(true)
                 .setBaseDir(new File("/custom-dir"))
-                .setCPMemberPriority(-1);
+                .setCPMemberPriority(-1)
+                .setAutoStepDownWhenLeader(true);
 
         config.getCPSubsystemConfig()
                 .getRaftAlgorithmConfig()
@@ -1610,11 +1618,20 @@ public class ConfigXmlGeneratorTest extends HazelcastTestSupport {
         assertThat(generatedConfig).isEqualTo(vectorCollection);
     }
 
+    @Test
+    public void testMemberAttributesConfig() {
+        Config expectedConfig = new Config().setMemberAttributeConfig(new MemberAttributeConfig()
+                .setAttribute("attribute1", "value1")
+                .setAttribute("attribute2", "value2"));
+        Config actualConfig = getNewConfigViaXMLGenerator(expectedConfig, false);
+        assertEquals(expectedConfig.getMemberAttributeConfig(), actualConfig.getMemberAttributeConfig());
+    }
+
     private Config getNewConfigViaXMLGenerator(Config config) {
         return getNewConfigViaXMLGenerator(config, true);
     }
 
-    private static Config getNewConfigViaXMLGenerator(Config config, boolean maskSensitiveFields) {
+    static Config getNewConfigViaXMLGenerator(Config config, boolean maskSensitiveFields) {
         ConfigXmlGenerator configXmlGenerator = new ConfigXmlGenerator(true, maskSensitiveFields);
         String xml = configXmlGenerator.generate(config);
         LOGGER.fine("\n%s", xml);

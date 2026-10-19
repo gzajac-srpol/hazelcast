@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,8 +74,8 @@ import static com.hazelcast.jet.core.JobStatus.RUNNING;
 import static com.hazelcast.jet.impl.AbstractJobProxy.cannotAddStatusListener;
 import static com.hazelcast.jet.impl.TerminationMode.CANCEL_FORCEFUL;
 import static com.hazelcast.jet.impl.execution.init.ExecutionPlanBuilder.createExecutionPlans;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.isOrHasCause;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.peel;
+import static com.hazelcast.internal.util.ExceptionUtil.isOrHasCause;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.peel;
 import static com.hazelcast.jet.impl.util.Util.doWithClassLoader;
 import static com.hazelcast.spi.impl.executionservice.ExecutionService.JOB_OFFLOADABLE_EXECUTOR;
 import static java.util.concurrent.CompletableFuture.runAsync;
@@ -160,7 +160,7 @@ public final class LightMasterContext {
 
         Set<Vertex> vertices = new HashSet<>();
         dag.iterator().forEachRemaining(vertices::add);
-        return createExecutionPlans(nodeEngine, members, dag, jobId, jobId, jobConfig, 0, true, subject)
+        return createExecutionPlans(nodeEngine, members, dag, jobId, jobId, jobConfig, 0, false, true, subject)
                 .handleAsync((planMap, e) -> {
                     LightMasterContext mc = new LightMasterContext(nodeEngine, jobId, logger,
                             jobIdString, jobConfig, planMap, vertices);

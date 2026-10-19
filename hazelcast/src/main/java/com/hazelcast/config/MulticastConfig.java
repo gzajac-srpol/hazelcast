@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,9 +39,17 @@ public class MulticastConfig implements TrustedInterfacesConfigurable<MulticastC
      */
     public static final boolean DEFAULT_ENABLED = false;
     /**
-     * Default group of multicast.
+     * Default IPv4 group of multicast.
      */
     public static final String DEFAULT_MULTICAST_GROUP = "224.2.2.3";
+    /**
+     * IPv6 multicast group (transient, link-local scope). It is not used by default.
+     * It can be set explicitly with {@link #setMulticastGroup(String)}, for example on macOS
+     * when the JVM uses the IPv6 stack. All members of the cluster must use the same group.
+     *
+     * @since 6.0
+     */
+    public static final String DEFAULT_MULTICAST_GROUP_IPV6 = "ff12::1";
     /**
      * Default value of port.
      */

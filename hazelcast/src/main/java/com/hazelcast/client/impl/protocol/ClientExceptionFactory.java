@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import com.hazelcast.core.LocalMemberResetException;
 import com.hazelcast.core.MemberLeftException;
 import com.hazelcast.core.OperationTimeoutException;
 import com.hazelcast.cp.exception.CPGroupDestroyedException;
+import com.hazelcast.cp.exception.CPLeaderSteppingDownException;
 import com.hazelcast.cp.exception.CannotReplicateException;
 import com.hazelcast.cp.exception.LeaderDemotedException;
 import com.hazelcast.cp.exception.NotLeaderException;
@@ -50,6 +51,8 @@ import com.hazelcast.internal.nio.ClassLoaderUtil;
 import com.hazelcast.internal.util.AddressUtil;
 import com.hazelcast.internal.util.EmptyStatement;
 import com.hazelcast.internal.util.ExceptionUtil;
+import com.hazelcast.logging.ILogger;
+import com.hazelcast.logging.LoggingService;
 import com.hazelcast.map.QueryResultSizeExceededException;
 import com.hazelcast.map.ReachedMaxSizeException;
 import com.hazelcast.memory.NativeOutOfMemoryError;
@@ -122,6 +125,7 @@ import static com.hazelcast.client.impl.protocol.ClientProtocolErrorCodes.CONCUR
 import static com.hazelcast.client.impl.protocol.ClientProtocolErrorCodes.CONFIG_MISMATCH;
 import static com.hazelcast.client.impl.protocol.ClientProtocolErrorCodes.CONSISTENCY_LOST_EXCEPTION;
 import static com.hazelcast.client.impl.protocol.ClientProtocolErrorCodes.CP_GROUP_DESTROYED_EXCEPTION;
+import static com.hazelcast.client.impl.protocol.ClientProtocolErrorCodes.CP_LEADER_STEPPING_DOWN_EXCEPTION;
 import static com.hazelcast.client.impl.protocol.ClientProtocolErrorCodes.DISTRIBUTED_OBJECT_DESTROYED;
 import static com.hazelcast.client.impl.protocol.ClientProtocolErrorCodes.DUPLICATE_TASK;
 import static com.hazelcast.client.impl.protocol.ClientProtocolErrorCodes.ENTRY_PROCESSOR;
@@ -204,6 +208,7 @@ import static com.hazelcast.client.impl.protocol.ClientProtocolErrorCodes.WAN_RE
 import static com.hazelcast.client.impl.protocol.ClientProtocolErrorCodes.WRONG_TARGET;
 import static com.hazelcast.client.impl.protocol.ClientProtocolErrorCodes.XA;
 
+
 /**
  * This class has the error codes and means of
  * 1) creating exception from error code
@@ -219,10 +224,12 @@ public class ClientExceptionFactory {
     private final Map<Integer, ExceptionFactory> intToFactory = new HashMap<>();
     private final Map<Class, Integer> classToInt = new HashMap<>();
     private final ClassLoader classLoader;
+    private final ILogger logger;
 
     @SuppressWarnings({"ExecutableStatementCount", "MethodLength"})
-    public ClientExceptionFactory(boolean jcacheAvailable, ClassLoader classLoader) {
+    public ClientExceptionFactory(boolean jcacheAvailable, ClassLoader classLoader, LoggingService loggingService) {
         this.classLoader = classLoader;
+        this.logger = loggingService.getLogger(ClientExceptionFactory.class);
         if (jcacheAvailable) {
             register(CACHE, CacheException.class, CacheException::new);
             register(CACHE_LOADER, CacheLoaderException.class, CacheLoaderException::new);
@@ -362,6 +369,8 @@ public class ClientExceptionFactory {
         register(NO_SUCH_FIELD_ERROR, NoSuchFieldError.class, ((message, cause) -> new NoSuchFieldError(message)));
         register(NO_SUCH_FIELD_EXCEPTION, NoSuchFieldException.class, ((message, cause) -> new NoSuchFieldException(message)));
         register(NO_CLASS_DEF_FOUND_ERROR, NoClassDefFoundError.class, ((message, cause) -> new NoClassDefFoundError(message)));
+        register(CP_LEADER_STEPPING_DOWN_EXCEPTION, CPLeaderSteppingDownException.class,
+                (message, cause) -> new CPLeaderSteppingDownException(message, null));
     }
 
     public Throwable createException(ClientMessage clientMessage) {
@@ -379,11 +388,16 @@ public class ClientExceptionFactory {
         if (exceptionFactory == null) {
             String className = errorHolder.getClassName();
             try {
-                Class<? extends Throwable> exceptionClass = ClassLoaderUtil.loadClass(classLoader, className);
+                Class<? extends Throwable> exceptionClass = ClassLoaderUtil.loadClass(classLoader, className)
+                        .asSubclass(Throwable.class);
                 throwable = ExceptionUtil.tryCreateExceptionWithMessageAndCause(exceptionClass, errorHolder.getMessage(),
                         createException(iterator));
             } catch (ClassNotFoundException e) {
                 EmptyStatement.ignore(e);
+            } catch (ClassCastException e) {
+                logger.warning("Received exception class that is not Throwable: " + className);
+                throwable = new UndefinedErrorCodeException("Received exception class that is not Throwable: "
+                        + errorHolder.getMessage(), className, createException(iterator));
             }
             if (throwable == null) {
                 throwable = new UndefinedErrorCodeException(errorHolder.getMessage(), className, createException(iterator));

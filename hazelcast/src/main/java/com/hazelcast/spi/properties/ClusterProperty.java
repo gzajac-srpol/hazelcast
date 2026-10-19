@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -219,7 +219,7 @@ public final class ClusterProperty {
      *     <a href="https://bugs.openjdk.org/browse/JDK-8194298">JDK support</a>.</li>
      * </ul>
      *
-     * @since 5.3.0
+     * @since 5.3
      * @see <a href="https://docs.oracle.com/en/java/javase/11/docs/api/jdk.net/jdk/net/ExtendedSocketOptions.html#TCP_KEEPIDLE">
      *     jdk.net.ExtendedSocketOptions#TCP_KEEPIDLE</a>
      */
@@ -237,10 +237,10 @@ public final class ClusterProperty {
      *     <a href="https://bugs.openjdk.org/browse/JDK-8194298">JDK support</a>.</li>
      * </ul>
      *
-     * @since 5.3.0
-     * @see <a href="https://docs.oracle.com/en/java/javase/11/docs/api/jdk.net/jdk/net/
-     ExtendedSocketOptions.html#TCP_KEEPINTERVAL">
-     *     jdk.net.ExtendedSocketOptions#TCP_KEEPINTERVAL</a>
+     * @since 5.3
+     * @see <a href=
+     *      "https://docs.oracle.com/en/java/javase/11/docs/api/jdk.net/jdk/net/ExtendedSocketOptions.html#TCP_KEEPINTERVAL">
+     *      jdk.net.ExtendedSocketOptions#TCP_KEEPINTERVAL</a>
      */
     public static final HazelcastProperty SOCKET_KEEP_INTERVAL
             = new HazelcastProperty("hazelcast.socket.keep.interval", 75);
@@ -256,9 +256,7 @@ public final class ClusterProperty {
      *     <li>Requires a recent JDK 8, JDK 11 or greater version that includes the required
      *     <a href="https://bugs.openjdk.org/browse/JDK-8194298">JDK support</a>.</li>
      * </ul>
-     *
-     * @return the configured value of Keep-Alive probe count.
-     * @since 5.3.0
+     * @since 5.3
      * @see <a href="https://docs.oracle.com/en/java/javase/11/docs/api/jdk.net/jdk/net/ExtendedSocketOptions.html#TCP_KEEPCOUNT">
      *     jdk.net.ExtendedSocketOptions#TCP_KEEPCOUNT</a>
      */
@@ -595,7 +593,7 @@ public final class ClusterProperty {
      * <p>
      * Async reduces latency significantly when new members join clusters, often reducing startup time.
      *
-     * @since 5.4.0
+     * @since 5.4
      */
     public static final HazelcastProperty ASYNC_JOIN_STRATEGY_ENABLED
             = new HazelcastProperty("hazelcast.async.join.strategy.enabled", true);
@@ -746,6 +744,13 @@ public final class ClusterProperty {
      */
     public static final HazelcastProperty PARTITION_MAX_PARALLEL_MIGRATIONS
             = new HazelcastProperty("hazelcast.partition.max.parallel.migrations", 10);
+
+    /**
+     * Maximum number of backup promotion destination batches to execute concurrently, including the master's local batch.
+     * Must be positive.
+     */
+    public static final HazelcastProperty PARTITION_MAX_PARALLEL_PROMOTION_BATCHES
+            = new HazelcastProperty("hazelcast.partition.max.parallel.promotion.batches", 4);
 
     /**
      * Maximum number of anti-entropy partition replications to be executed on a member.
@@ -1250,6 +1255,8 @@ public final class ClusterProperty {
 
     /**
      * Scheduler delay for map tasks those are executed on backup members.
+     * Backup flush always lags behind the primary flush for this value,
+     * for both regular and manual flush operations.
      */
     public static final HazelcastProperty MAP_REPLICA_SCHEDULED_TASK_DELAY_SECONDS
             = new HazelcastProperty("hazelcast.map.replica.scheduled.task.delay.seconds", 10, SECONDS);
@@ -1317,6 +1324,32 @@ public final class ClusterProperty {
      */
     public static final HazelcastProperty MAP_WRITE_BEHIND_QUEUE_CAPACITY
             = new HazelcastProperty("hazelcast.map.write.behind.queue.capacity", 50000);
+
+    /**
+     * The cleanup threshold for the event journal, expressed as a fraction of its capacity.
+     * <p>
+     * When the remaining capacity of the event journal drops below this threshold,
+     * a cleanup task may be triggered to remove <b>expired</b> events and reclaim space.
+     * Cleanup triggered by put operation.
+     * Cleanup is performed only if the journal has a configured
+     * {@link com.hazelcast.config.EventJournalConfig#setTimeToLiveSeconds(int) time-to-live (TTL)} value,
+     * since only expired items are eligible for removal.
+     * <p>
+     * For example, with the value of {@code 0.3}, cleanup triggers by put operation when
+     * less than 30% of the total journal capacity remains available.
+     * <p>
+     * This property affects the event journal used by both IMap and ICache.
+     * This property helps balance memory usage and cleanup frequency.
+     * Setting a lower value delays cleanup (potentially increasing memory pressure),
+     * while a higher value triggers cleanup more aggressively.
+     * <p>
+     * Applicable only when {@code timeToLiveSeconds > 0}.
+     * Default value: {@code 1f}, meaning cleanup is triggered after each put operation.
+     *
+     * @since 5.7
+     */
+    public static final HazelcastProperty EVENT_JOURNAL_CLEANUP_THRESHOLD
+            = new HazelcastProperty("hazelcast.journal.cleanup.threshold", 1f);
 
     /*
      * INVOCATION / OPERATION SYSTEM PROPERTIES
@@ -1445,6 +1478,10 @@ public final class ClusterProperty {
      * being migrated. This can lead to stale reads for some scenarios. You can
      * disable stale read operations by setting this system property’s value to
      * "true". Its default value is "false", meaning that stale reads are allowed.
+     * @apiNote Allowing stale reads does not allow {@link IMap} reads to mutate
+     * the partition data being migrated. For example, a read that would insert
+     * a value returned by a {@link com.hazelcast.map.MapLoader} is retried until migration
+     * completes instead of invoking the loader during migration.
      */
     public static final HazelcastProperty DISABLE_STALE_READ_ON_PARTITION_MIGRATION
             = new HazelcastProperty("hazelcast.partition.migration.stale.read.disabled", false);
@@ -1664,7 +1701,7 @@ public final class ClusterProperty {
      * If the JVM process is expected to continue executing other application bits after Hazelcast is shut down, then
      * if this property is {@code true}, logging may be disrupted.
      *
-     * @since 5.4.0
+     * @since 5.4
      */
     public static final HazelcastProperty LOGGING_SHUTDOWN
             = new HazelcastProperty("hazelcast.logging.shutdown", false);
@@ -2000,10 +2037,54 @@ public final class ClusterProperty {
      * Currently only implemented for client invocations of the following methods:
      * {@link IMap#entrySet()}, and {@link IMap#values()}.
      *
-     * @since 6.0
+     * @since 5.6
      */
     public static final HazelcastProperty EXPENSIVE_IMAP_INVOCATION_REPORTING_THRESHOLD
             = new HazelcastProperty("hazelcast.expensive.imap.invocation.reporting.threshold", 100);
+
+
+    /**
+     * Enables or disables the use of a dedicated executor for vector collection
+     * index maintenance operations, such as optimization and cleanup of deleted nodes.
+     * <p>
+     * When enabled, index maintenance tasks are executed in an isolated executor
+     * instead of sharing the common {@link java.util.concurrent.ForkJoinPool}.
+     * <p>
+     * Default value is {@code true}.
+     *
+     * @since 6.0
+     */
+    public static final HazelcastProperty USE_INDEX_ISOLATED_EXECUTOR =
+        new HazelcastProperty("hazelcast.vector.maintenance.executor.enabled", true);
+
+    /**
+     * Property that defines the maximum parallelism level for the isolated vector collection index executor.
+     * <p>
+     * This controls the number of threads that can execute index-related
+     * tasks concurrently when the isolated executor is enabled.
+     * <p>
+     * If the property is not set, or is set to {@code 0} or a negative value, the default parallelism is used:
+     * <pre>{@code
+     * max(1, Runtime.getRuntime().availableProcessors() - 1)
+     * }</pre>
+     * The maximum parallelism is limited to:
+     * <pre>{@code
+     * Runtime.getRuntime().availableProcessors() * 2
+     * }</pre>
+     * If a value greater than this limit is provided, it will be capped and
+     * the effective parallelism will be set to:
+     * <pre>{@code
+     * Runtime.getRuntime().availableProcessors() * 2
+     * }</pre>
+     *
+     * @see #USE_INDEX_ISOLATED_EXECUTOR
+     *
+     * @since 6.0
+     */
+    public static final HazelcastProperty INDEX_ISOLATED_EXECUTOR_MAX_PARALLELISM
+        = new HazelcastProperty(
+            "hazelcast.vector.maintenance.executor.maxParallelism",
+        RuntimeAvailableProcessors.get() - 1);
 
     private ClusterProperty() {
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package com.hazelcast.map.impl.mapstore.writebehind;
 
+import com.hazelcast.internal.serialization.Data;
 import com.hazelcast.map.EntryLoader.MetadataAwareValue;
 import com.hazelcast.map.impl.mapstore.MapStoreContext;
 import com.hazelcast.map.impl.mapstore.writebehind.entry.DelayedEntry;
-import com.hazelcast.internal.serialization.Data;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -289,8 +289,10 @@ class DefaultWriteBehindProcessor extends AbstractWriteBehindProcessor<DelayedEn
         for (Collection<DelayedEntry> value : values) {
             size += value.size();
         }
-        final String logMessage = String.format("Map store flush operation can not be done for %d entries", size);
-        logger.severe(logMessage);
+        logWithMapName(
+                logger::severe,
+                String.format("Map store flush operation can not be done for %d entries", size)
+        );
     }
 
     @Override
@@ -347,8 +349,12 @@ class DefaultWriteBehindProcessor extends AbstractWriteBehindProcessor<DelayedEn
                 // partition-write-behind-queues and will try to re-process
                 // them. This fail and retry cycle will be repeated indefinitely.
                 List failureList = task.failureList();
-                logger.severe("Number of entries which could not be stored is = [" + failureList.size() + "]"
-                        + ", Hazelcast will indefinitely retry to store them", exception);
+                logWithMapName(
+                        logger::severe,
+                        "Number of entries which could not be stored is = [" + failureList.size() + "]"
+                                + ", Hazelcast will indefinitely retry to store them",
+                        exception
+                );
                 return failureList;
             }
         }

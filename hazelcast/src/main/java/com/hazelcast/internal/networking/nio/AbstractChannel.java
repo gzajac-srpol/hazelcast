@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ import java.util.concurrent.ConcurrentMap;
 import static com.hazelcast.internal.util.Preconditions.checkNotNegative;
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
 import static java.lang.String.format;
-import static java.util.Collections.newSetFromMap;
 
 /**
  * An abstract {@link Channel} implementation. This class is a pure implementation
@@ -55,7 +54,7 @@ public abstract class AbstractChannel implements Channel {
     protected final ILogger logger;
 
     private final ConcurrentMap<?, ?> attributeMap = new ConcurrentHashMap<>();
-    private final Set<ChannelCloseListener> closeListeners = newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<ChannelCloseListener> closeListeners = ConcurrentHashMap.newKeySet();
     private final boolean clientMode;
     @SuppressWarnings("FieldCanBeLocal")
     private volatile SocketAddress remoteAddress;

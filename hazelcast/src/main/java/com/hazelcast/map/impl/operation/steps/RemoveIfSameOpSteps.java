@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ public enum RemoveIfSameOpSteps implements IMapOpStep {
         @Override
         public void runStep(State state) {
             DefaultRecordStore recordStore = (DefaultRecordStore) state.getRecordStore();
-            Object oldValue = recordStore.loadValueOfKey(state.getKey(), state.getNow());
+            Object oldValue = recordStore.loadValue(state.getKey(), state.getNow());
             if (oldValue != null) {
                 recordStore.getMapDataStore().remove(state.getKey(), state.getNow(), state.getTxnId());
                 state.setOldValue(oldValue);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,13 @@ package com.hazelcast.map.metrics;
 import com.hazelcast.config.IndexConfig;
 import com.hazelcast.config.IndexType;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Used for IMap value type when testing indexing metrics
  */
-record User(String userId, String name) {
+record User(String userId, String name) implements Serializable {
     /**
      * @return Config for an index on the "userId" field of a {@link User} record
      */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,14 +19,12 @@ package com.hazelcast.mapstore.mssql;
 import com.hazelcast.mapstore.GenericMapStoreBasicIT;
 import com.hazelcast.test.annotation.NightlyTest;
 import com.hazelcast.test.jdbc.MSSQLDatabaseProvider;
-import org.junit.BeforeClass;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.BeforeAll;
 
-
-@Category(NightlyTest.class)
+@NightlyTest
 public class MSSQLGenericMapStoreBasicIT extends GenericMapStoreBasicIT {
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() {
         initialize(new MSSQLDatabaseProvider());
     }

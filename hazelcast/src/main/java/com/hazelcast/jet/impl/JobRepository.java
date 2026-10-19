@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import com.hazelcast.flakeidgen.FlakeIdGenerator;
 import com.hazelcast.internal.nio.IOUtil;
 import com.hazelcast.internal.tpcengine.util.OS;
 import com.hazelcast.internal.util.ExceptionUtil;
+import com.hazelcast.internal.util.MemoizingSupplier;
+import com.hazelcast.internal.util.concurrent.ConcurrentMemoizingSupplier;
 import com.hazelcast.jet.JetException;
 import com.hazelcast.jet.Job;
 import com.hazelcast.jet.config.JobConfig;
@@ -33,7 +35,6 @@ import com.hazelcast.jet.core.metrics.JobMetrics;
 import com.hazelcast.jet.impl.deployment.IMapOutputStream;
 import com.hazelcast.jet.impl.execution.init.JetInitDataSerializerHook;
 import com.hazelcast.jet.impl.metrics.RawJobMetrics;
-import com.hazelcast.jet.impl.util.ConcurrentMemoizingSupplier;
 import com.hazelcast.jet.impl.util.ImdgUtil;
 import com.hazelcast.jet.impl.util.Util;
 import com.hazelcast.logging.ILogger;
@@ -46,7 +47,6 @@ import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
 import com.hazelcast.query.Predicate;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.spi.properties.ClusterProperty;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -54,6 +54,7 @@ import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serial;
 import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -84,7 +85,7 @@ import static com.hazelcast.jet.Util.idToString;
 import static com.hazelcast.jet.impl.util.IOUtil.fileNameFromUrl;
 import static com.hazelcast.jet.impl.util.IOUtil.packDirectoryIntoZip;
 import static com.hazelcast.jet.impl.util.IOUtil.packStreamIntoZip;
-import static com.hazelcast.jet.impl.util.Util.memoizeConcurrent;
+import static com.hazelcast.internal.util.Memoizers.memoizeConcurrent;
 import static com.hazelcast.map.impl.EntryRemovingProcessor.ENTRY_REMOVING_PROCESSOR;
 import static com.hazelcast.map.impl.MapService.SERVICE_NAME;
 import static java.util.Comparator.comparing;
@@ -189,8 +190,8 @@ public class JobRepository {
         this.instance = instance;
         this.logger = instance.getLoggingService().getLogger(getClass());
 
-        jobRecords = new ConcurrentMemoizingSupplier<>(() -> instance.getMap(JOB_RECORDS_MAP_NAME));
-        jobResults = new ConcurrentMemoizingSupplier<>(() -> instance.getMap(JOB_RESULTS_MAP_NAME));
+        jobRecords = memoizeConcurrent(() -> instance.getMap(JOB_RECORDS_MAP_NAME));
+        jobResults = memoizeConcurrent(() -> instance.getMap(JOB_RESULTS_MAP_NAME));
         jobExecutionRecords = memoizeConcurrent(() -> safeImap(instance.getMap(JOB_EXECUTION_RECORDS_MAP_NAME)));
         jobMetrics = memoizeConcurrent(() -> instance.getMap(JOB_METRICS_MAP_NAME));
         exportedSnapshotDetailsCache = memoizeConcurrent(() -> instance.getMap(EXPORTED_SNAPSHOTS_DETAIL_CACHE));
@@ -225,7 +226,7 @@ public class JobRepository {
     void uploadJobResources(long jobId, JobConfig jobConfig) {
         Map<String, byte[]> tmpMap = new HashMap<>();
         boolean resourceImapCreated = false;
-        Supplier<IMap<String, byte[]>> jobFileStorage = Util.memoize(() -> getJobResources(jobId));
+        Supplier<IMap<String, byte[]>> jobFileStorage = MemoizingSupplier.memoize(() -> getJobResources(jobId));
         try {
             for (ResourceConfig rc : jobConfig.getResourceConfigs().values()) {
                 switch (rc.getResourceType()) {
@@ -608,7 +609,14 @@ public class JobRepository {
         return jobRecordsMap().values();
     }
 
-    public boolean jobRecordsMapExists() {
+    public Collection<JobRecord> getJobRecords(@Nonnull Predicate<Long, JobRecord> predicate) {
+        if (jobRecords.remembered() != null || jobRecordsMapExists()) {
+            return jobRecords.get().values(predicate);
+        }
+        return Collections.emptyList();
+    }
+
+    private boolean jobRecordsMapExists() {
         return ((AbstractJetInstance<?>) instance.getJet()).existsDistributedObject(SERVICE_NAME, JOB_RECORDS_MAP_NAME);
     }
 
@@ -750,10 +758,11 @@ public class JobRepository {
     public static final class UpdateJobExecutionRecordEntryProcessor implements
             EntryProcessor<Long, JobExecutionRecord, Object>,
             IdentifiedDataSerializable {
-
+        @Serial
+        private static final long serialVersionUID = 1L;
         private long jobId;
-        @SuppressFBWarnings(value = "SE_BAD_FIELD",
-                justification = "this class is not going to be java-serialized")
+//        @SuppressFBWarnings(value = "SE_BAD_FIELD",
+//                justification = "this class is not going to be java-serialized")
         private JobExecutionRecord jobExecutionRecord;
         private boolean canCreate;
 
@@ -811,7 +820,8 @@ public class JobRepository {
 
     public static class FilterJobResultByNamePredicate
             implements Predicate<Long, JobResult>, IdentifiedDataSerializable {
-
+        @Serial
+        private static final long serialVersionUID = 1L;
         private String name;
 
         public FilterJobResultByNamePredicate() {

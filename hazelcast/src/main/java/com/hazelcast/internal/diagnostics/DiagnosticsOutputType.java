@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,20 +18,20 @@ package com.hazelcast.internal.diagnostics;
 
 /**
  * Defines the output type for Hazelcast diagnostics.
- * @since 6.0
+ * @since 5.6
  */
 public enum DiagnosticsOutputType {
 
     /**
      * Outputs the diagnostics to a set of files managed by Hazelcast.
-     * @since 6.0
+     * @since 5.6
      */
     FILE,
 
     /**
      * Outputs the diagnostics to the "standard" output stream as determined by
      * {@link System#out}.
-     * @since 6.0
+     * @since 5.6
      */
     STDOUT,
 
@@ -45,7 +45,7 @@ public enum DiagnosticsOutputType {
      *
      * @see com.hazelcast.spi.properties.ClusterProperty#LOGGING_ENABLE_DETAILS
      * @see Diagnostics#INCLUDE_EPOCH_TIME
-     * @since 6.0
+     * @since 5.6
      */
     LOGGER
 }

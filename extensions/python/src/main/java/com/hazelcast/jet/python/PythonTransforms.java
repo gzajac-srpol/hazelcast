@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,12 +25,14 @@ import javax.annotation.Nonnull;
 /**
  * Transforms which allow the user to call Python user-defined functions
  * from inside a Jet pipeline.
+ * <p>
+ * See also {@link PythonExtension} for a fluent and modernized API.
  *
  * @since Jet 4.0
  */
 public final class PythonTransforms {
 
-    private static final int DEFAULT_MAX_BATCH_SIZE = Integer.MAX_VALUE;
+    static final int DEFAULT_MAX_BATCH_SIZE = Integer.MAX_VALUE;
 
     private PythonTransforms() {
     }
@@ -83,7 +85,7 @@ public final class PythonTransforms {
      * @deprecated Jet now has first-class support for data rebalancing, see
      * {@link GeneralStage#rebalance()} and {@link GeneralStage#rebalance(FunctionEx)}.
      */
-    @Deprecated
+    @Deprecated(since = "5.0", forRemoval = true)
     @Nonnull
     public static <K> FunctionEx<StreamStage<String>, StreamStage<String>> mapUsingPython(
             @Nonnull FunctionEx<? super String, ? extends K> keyFn,
@@ -141,11 +143,11 @@ public final class PythonTransforms {
      * pyConfig))}. See {@link com.hazelcast.jet.python.PythonServiceConfig}
      * for more details.
      *
-     *       @deprecated Jet now has first-class support for data rebalancing, see
-     *      {@link GeneralStage#rebalance()} and {@link GeneralStage#rebalance(FunctionEx)}.
+     *  @deprecated Jet now has first-class support for data rebalancing, see
+     *  {@link GeneralStage#rebalance()} and {@link GeneralStage#rebalance(FunctionEx)}.
      */
     @Nonnull
-    @Deprecated
+    @Deprecated(since = "5.0", forRemoval = true)
     public static <K> FunctionEx<BatchStage<String>, BatchStage<String>> mapUsingPythonBatch(
             @Nonnull FunctionEx<? super String, ? extends K> keyFn,
             @Nonnull PythonServiceConfig cfg

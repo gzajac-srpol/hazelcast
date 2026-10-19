@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ public class AddMapConfigMessageTaskTest extends ConfigMessageTaskTest<AddMapCon
         mapConfig.setDataPersistenceConfig(dataPersistenceConfig);
         TieredStoreConfig tieredStoreConfig = mapConfig.getTieredStoreConfig();
         tieredStoreConfig.setEnabled(true);
-        tieredStoreConfig.getMemoryTierConfig().setCapacity(Capacity.of(1L, MemoryUnit.GIGABYTES));
+        tieredStoreConfig.getMemoryTierConfig().setCapacity(Capacity.of(256L, MemoryUnit.MEGABYTES));
         tieredStoreConfig.getDiskTierConfig().setEnabled(true).setDeviceName("null-device");
 
         ClientMessage addMapConfigClientMessage = DynamicConfigAddMapConfigCodec.encodeRequest(

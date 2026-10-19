@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ public class QueryEngineImplTest extends HazelcastTestSupport {
 
     @Test
     public void runQueryOnAllPartitions() {
-        Predicate<Object, Object> predicate = Predicates.equal("this", value);
+        Predicate predicate = Predicates.equal("this", value);
         Query query = Query.of().mapName(map.getName()).predicate(predicate).iterationType(KEY).build();
 
         QueryResult result = queryEngine.execute(query, Target.ALL_NODES);
@@ -90,7 +90,7 @@ public class QueryEngineImplTest extends HazelcastTestSupport {
 
     @Test
     public void runQueryOnLocalPartitions() {
-        Predicate<Object, Object> predicate = Predicates.equal("this", value);
+        Predicate predicate = Predicates.equal("this", value);
         Query query = Query.of().mapName(map.getName()).predicate(predicate).iterationType(KEY).build();
 
         QueryResult result = queryEngine.execute(query, Target.LOCAL_NODE);
@@ -101,7 +101,7 @@ public class QueryEngineImplTest extends HazelcastTestSupport {
 
     @Test
     public void runQueryOnAllPartitions_key() {
-        Predicate<Object, Object> predicate = Predicates.equal("this", value);
+        Predicate predicate = Predicates.equal("this", value);
         Query query = Query.of().mapName(map.getName()).predicate(predicate).iterationType(KEY).build();
 
         QueryResult result = queryEngine.execute(query, Target.ALL_NODES);
@@ -112,7 +112,7 @@ public class QueryEngineImplTest extends HazelcastTestSupport {
 
     @Test
     public void runQueryOnAllPartitions_value() {
-        Predicate<Object, Object> predicate = Predicates.equal("this", value);
+        Predicate predicate = Predicates.equal("this", value);
         Query query = Query.of().mapName(map.getName()).predicate(predicate).iterationType(VALUE).build();
 
         QueryResult result = queryEngine.execute(query, Target.ALL_NODES);

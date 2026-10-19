@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +49,6 @@ import com.hazelcast.test.annotation.QuickTest;
 import com.hazelcast.topic.TopicOverloadPolicy;
 import com.hazelcast.wan.WanPublisherState;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -86,6 +85,8 @@ import static com.hazelcast.config.MaxSizePolicy.ENTRY_COUNT;
 import static com.hazelcast.config.MemoryTierConfig.DEFAULT_CAPACITY;
 import static com.hazelcast.config.PermissionConfig.PermissionType.CACHE;
 import static com.hazelcast.config.PermissionConfig.PermissionType.CONFIG;
+import static com.hazelcast.config.PermissionConfig.PermissionType.SQL;
+import static com.hazelcast.config.PermissionConfig.PermissionType.USER_CODE_NAMESPACE;
 import static com.hazelcast.config.PersistentMemoryMode.MOUNTED;
 import static com.hazelcast.config.RestEndpointGroup.CLUSTER_READ;
 import static com.hazelcast.config.RestEndpointGroup.HEALTH_CHECK;
@@ -134,6 +135,7 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
             + "<action>destroy</action>"
             + "<action>add</action>"
             + "<action>remove</action>"
+            + "<action>use</action>"
             + "</actions>";
 
     @Override
@@ -892,7 +894,7 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
                 + "    <backup-count>1</backup-count>"
                 + "    <async-backup-count>0</async-backup-count>"
                 + "    <time-to-live-seconds>0</time-to-live-seconds>"
-                + "    <max-idle-seconds>0</max-idle-seconds>    "
+                + "    <max-idle-seconds>0</max-idle-seconds>"
                 + "    <eviction eviction-policy=\"NONE\" max-size-policy=\"per_partition\" size=\"0\"/>"
                 + "    <merge-policy batch-size=\"2342\">CustomMergePolicy</merge-policy>"
                 + "</map>"
@@ -917,7 +919,7 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
         String xml = HAZELCAST_START_TAG
                 + "<map name=\"expiry\">"
                 + "    <time-to-live-seconds>2147483647</time-to-live-seconds>"
-                + "    <max-idle-seconds>2147483647</max-idle-seconds>    "
+                + "    <max-idle-seconds>2147483647</max-idle-seconds>"
                 + "</map>"
                 + HAZELCAST_END_TAG;
 
@@ -1505,7 +1507,7 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
                 + "  <map name=\"" + mapName + "\">\n"
                 + "    <near-cache name=\"test\">\n"
                 + "      <in-memory-format>OBJECT</in-memory-format>\n"
-                + "      <serialize-keys>false</serialize-keys>\n"
+                + "      <serialize-keys>true</serialize-keys>\n"
                 + "      <time-to-live-seconds>77</time-to-live-seconds>\n"
                 + "      <max-idle-seconds>92</max-idle-seconds>\n"
                 + "      <invalidate-on-change>false</invalidate-on-change>\n"
@@ -1520,6 +1522,7 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
         NearCacheConfig nearCacheConfig = mapConfig.getNearCacheConfig();
 
         assertEquals(InMemoryFormat.OBJECT, nearCacheConfig.getInMemoryFormat());
+        assertTrue(nearCacheConfig.isSerializeKeys());
         assertEquals(77, nearCacheConfig.getTimeToLiveSeconds());
         assertEquals(92, nearCacheConfig.getMaxIdleSeconds());
         assertFalse(nearCacheConfig.isInvalidateOnChange());
@@ -3337,6 +3340,52 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
     }
 
     @Override
+    public void testCompactSerialization_zeroConfigRestrictions() {
+        String xml = HAZELCAST_START_TAG + """
+                <serialization>
+                    <compact-serialization>
+                        <zero-config-filter>
+                            <whitelist>
+                                <class>com.acme.MyClass</class>
+                                <package>com.acme.package</package>
+                                <prefix>com.acme.prefix.</prefix>
+                            </whitelist>
+                            <blacklist>
+                                <class>com.acme.MyClass2</class>
+                                <package>com.acme.package2</package>
+                                <prefix>com.acme.prefix2.</prefix>
+                            </blacklist>
+                        </zero-config-filter>
+                    </compact-serialization>
+                </serialization>
+                """ + HAZELCAST_END_TAG;
+
+        SerializationConfig config = buildConfig(xml).getSerializationConfig();
+        CompactTestUtil.verifySerializationServiceBuilds(config);
+        ClassFilter expectedWhitelist = new ClassFilter().addClasses("com.acme.MyClass").addPackages("com.acme.package")
+                                                         .addPrefixes("com.acme.prefix.");
+        ClassFilter expectedBlacklist = new ClassFilter().addClasses("com.acme.MyClass2").addPackages("com.acme.package2")
+                                                         .addPrefixes("com.acme.prefix2.");
+        CompactTestUtil.assertZeroConfigFilter(config,
+                new JavaSerializationFilterConfig().setWhitelist(expectedWhitelist).setBlacklist(expectedBlacklist));
+    }
+
+    @Override
+    public void testCompactSerialization_zeroConfigDefaultsDisabled() {
+        String xml = HAZELCAST_START_TAG + """
+                <serialization>
+                    <compact-serialization>
+                        <zero-config-filter defaults-disabled="true"/>
+                    </compact-serialization>
+                </serialization>
+                """ + HAZELCAST_END_TAG;
+
+        SerializationConfig config = buildConfig(xml).getSerializationConfig();
+        CompactTestUtil.verifySerializationServiceBuilds(config);
+        CompactTestUtil.assertZeroConfigFilter(config, new JavaSerializationFilterConfig().setDefaultsDisabled(true));
+    }
+
+    @Override
     @Test
     public void testAllowOverrideDefaultSerializers() {
         String xml = HAZELCAST_START_TAG
@@ -3864,7 +3913,7 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
         assertSame("Receive is expected to be default on-join-operation", OnJoinPermissionOperationName.RECEIVE,
                 config.getSecurityConfig().getOnJoinPermissionOperation());
         PermissionConfig expected = new PermissionConfig(CACHE, "/hz/cachemanager1/cache1", "dev");
-        expected.addAction("create").addAction("destroy").addAction("add").addAction("remove");
+        expected.addAction("create").addAction("destroy").addAction("add").addAction("remove").addAction("use");
         assertPermissionConfig(expected, config);
         assertFalse(config.getSecurityConfig().isPermissionPriorityGrant());
     }
@@ -3885,6 +3934,52 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
         expected.getEndpoints().add("127.0.0.1");
         assertPermissionConfig(expected, config);
         assertTrue(config.getSecurityConfig().isPermissionPriorityGrant());
+    }
+
+    @Override
+    @Test
+    public void testUserCodeNamespacePermission() {
+        String xml = HAZELCAST_START_TAG + SECURITY_START_TAG
+                     + "  <client-permissions>"
+                     + "    <user-code-namespace-permission name=\"test-ucn\" principal=\"dev\">"
+                     + ACTIONS_FRAGMENT
+                     + "    </user-code-namespace-permission>\n"
+                     + "  </client-permissions>"
+                     + SECURITY_END_TAG + HAZELCAST_END_TAG;
+
+        Config config = buildConfig(xml);
+        PermissionConfig expected = new PermissionConfig(USER_CODE_NAMESPACE, "test-ucn", "dev");
+        expected.addAction("create").addAction("destroy").addAction("add").addAction("remove").addAction("use");
+        assertPermissionConfig(expected, config);
+        assertFalse(config.getSecurityConfig().isPermissionPriorityGrant());
+    }
+
+    @Override
+    @Test
+    public void testSqlPermission() {
+        String xml = HAZELCAST_START_TAG + SECURITY_START_TAG
+                     + "  <client-permissions>"
+                     + "    <sql-permission name=\"test-sql\" principal=\"dev\">"
+                     + "      <actions>"
+                     + "        <action>view-mapping</action>"
+                     + "        <action>create-view</action>"
+                     + "        <action>drop-view</action>"
+                     + "        <action>create-type</action>"
+                     + "        <action>drop-type</action>"
+                     + "        <action>view-dataconnection</action>"
+                     + "        <action>create-dataconnection</action>"
+                     + "        <action>drop-dataconnection</action>"
+                     + "      </actions>"
+                     + "    </sql-permission>\n"
+                     + "  </client-permissions>"
+                     + SECURITY_END_TAG + HAZELCAST_END_TAG;
+        Config config = buildConfig(xml);
+        PermissionConfig expected = new PermissionConfig(SQL, "test-sql", "dev");
+        expected.addAction("view-mapping").addAction("create-view").addAction("drop-view").addAction("create-type")
+                .addAction("drop-type").addAction("view-dataconnection").addAction("create-dataconnection")
+                .addAction("drop-dataconnection");
+        assertPermissionConfig(expected, config);
+        assertFalse(config.getSecurityConfig().isPermissionPriorityGrant());
     }
 
     @Override
@@ -4014,6 +4109,7 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
                 + "  <base-dir>/mnt/cp-data</base-dir>\n"
                 + "  <data-load-timeout-seconds>30</data-load-timeout-seconds>\n"
                 + "  <cp-member-priority>-1</cp-member-priority>\n"
+                + "  <auto-step-down-when-leader>true</auto-step-down-when-leader>\n"
                 + "  <raft-algorithm>\n"
                 + "    <leader-election-timeout-in-millis>500</leader-election-timeout-in-millis>\n"
                 + "    <leader-heartbeat-period-in-millis>100</leader-heartbeat-period-in-millis>\n"
@@ -4049,10 +4145,12 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
                 + "    <map>\n"
                 + "      <name>map1</name>\n"
                 + "      <max-size-mb>1</max-size-mb>\n"
+                + "      <purge-enabled>true</purge-enabled>\n"
                 + "    </map>\n"
                 + "    <map>\n"
                 + "      <name>map2</name>\n"
                 + "      <max-size-mb>2</max-size-mb>\n"
+                + "      <purge-enabled>false</purge-enabled>\n"
                 + "    </map>\n"
                 + "  </maps>\n"
                 + "  <map-limit>20</map-limit>\n"
@@ -4098,9 +4196,12 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
         assertNotNull(mapConfig2);
         assertEquals("map1", mapConfig1.getName());
         assertEquals(1, mapConfig1.getMaxSizeMb());
+        assertTrue(mapConfig1.isPurgeEnabled());
         assertEquals("map2", mapConfig2.getName());
         assertEquals(2, mapConfig2.getMaxSizeMb());
+        assertFalse(mapConfig2.isPurgeEnabled());
         assertEquals(20, cpSubsystemConfig.getCPMapLimit());
+        assertTrue(cpSubsystemConfig.isAutoStepDownWhenLeader());
     }
 
     @Override
@@ -4274,7 +4375,94 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
     }
 
     @Override
-    @Ignore("XSD validation allows multiple config, no programmatic validation is implemented")
+    @Test
+    public void testMultipleClientEndpointConfigs_throwsException() {
+        String xml = HAZELCAST_START_TAG
+                + "<advanced-network enabled=\"true\">"
+                + "  <client-server-socket-endpoint-config name=\"client-1\"/>"
+                + "  <client-server-socket-endpoint-config name=\"client-2\"/>"
+                + "</advanced-network>"
+                + HAZELCAST_END_TAG;
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(xml);
+    }
+
+    @Override
+    @Test
+    public void testMultipleRestEndpointConfigs_throwsException() {
+        String xml = HAZELCAST_START_TAG
+                + "<advanced-network enabled=\"true\">"
+                + "  <rest-server-socket-endpoint-config name=\"rest-1\"/>"
+                + "  <rest-server-socket-endpoint-config name=\"rest-2\"/>"
+                + "</advanced-network>"
+                + HAZELCAST_END_TAG;
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(xml);
+    }
+
+    @Override
+    @Test
+    public void testMultipleMemcacheEndpointConfigs_throwsException() {
+        String xml = HAZELCAST_START_TAG
+                + "<advanced-network enabled=\"true\">"
+                + "  <memcache-server-socket-endpoint-config name=\"mc-1\"/>"
+                + "  <memcache-server-socket-endpoint-config name=\"mc-2\"/>"
+                + "</advanced-network>"
+                + HAZELCAST_END_TAG;
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(xml);
+    }
+
+    @Override
+    @Test
+    public void testMultipleJoinElements_throwsException() {
+        String xml = HAZELCAST_START_TAG
+                + "<advanced-network enabled=\"true\">"
+                + "  <join><auto-detection enabled=\"true\"/></join>"
+                + "  <join><auto-detection enabled=\"false\"/></join>"
+                + "</advanced-network>"
+                + HAZELCAST_END_TAG;
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(xml);
+    }
+
+    @Override
+    @Test
+    public void testMultipleFailureDetectorElements_throwsException() {
+        String xml = HAZELCAST_START_TAG
+                + "<advanced-network enabled=\"true\">"
+                + "  <failure-detector enabled=\"true\"/>"
+                + "  <failure-detector enabled=\"false\"/>"
+                + "</advanced-network>"
+                + HAZELCAST_END_TAG;
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(xml);
+    }
+
+    @Override
+    @Test
+    public void testMultipleMemberAddressProviderElements_throwsException() {
+        String xml = HAZELCAST_START_TAG
+                + "<advanced-network enabled=\"true\">"
+                + "  <member-address-provider enabled=\"true\">"
+                + "    <class-name>com.acme.DummyProvider</class-name>"
+                + "  </member-address-provider>"
+                + "  <member-address-provider enabled=\"true\">"
+                + "    <class-name>com.acme.DummyProvider</class-name>"
+                + "  </member-address-provider>"
+                + "</advanced-network>"
+                + HAZELCAST_END_TAG;
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(xml);
+    }
+
+    @Override
     @Test
     public void testMultipleMemberEndpointConfigs_throwsException() {
         String xml = HAZELCAST_START_TAG

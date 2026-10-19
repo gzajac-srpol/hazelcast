@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -116,15 +116,20 @@ public class ClientRoutingModePhoneHomeTest extends HazelcastTestSupport {
         // terminate ALL_MEMBERS routing client
         client1.shutdown();
 
-        newPhoneHome(instance);
-        assertThat(get(SINGLE_MEMBER_CLIENTS_COUNT)).isEqualTo("1");
-        assertThat(get(ALL_MEMBERS_CLIENTS_COUNT)).isEqualTo("0");
+        assertTrueEventually(() -> {
+            newPhoneHome(instance);
+            assertThat(get(SINGLE_MEMBER_CLIENTS_COUNT)).isEqualTo("1");
+            assertThat(get(ALL_MEMBERS_CLIENTS_COUNT)).isEqualTo("0");
+        });
 
         // terminate SINGLE_MEMBER routing client
         client2.shutdown();
 
-        newPhoneHome(instance);
-        assertThat(get(SINGLE_MEMBER_CLIENTS_COUNT)).isEqualTo("0");
+        assertTrueEventually(() -> {
+            newPhoneHome(instance);
+            assertThat(get(SINGLE_MEMBER_CLIENTS_COUNT)).isEqualTo("0");
+            assertThat(get(ALL_MEMBERS_CLIENTS_COUNT)).isEqualTo("0");
+        });
     }
 
     private String get(Metric metric) {

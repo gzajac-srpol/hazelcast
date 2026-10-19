@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.hazelcast.test.TestNameHolder.removeThreadLocalTestMethodName;
+import static com.hazelcast.test.TestNameHolder.setThreadLocalTestMethodName;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.Runtime.getRuntime;
@@ -193,9 +195,7 @@ public class HazelcastParallelClassRunner extends AbstractHazelcastClassRunner {
         }
 
         private Properties init(Properties properties) {
-            for (Map.Entry entry : globalProperties.entrySet()) {
-                properties.put(entry.getKey(), entry.getValue());
-            }
+            properties.putAll(globalProperties);
             return properties;
         }
 

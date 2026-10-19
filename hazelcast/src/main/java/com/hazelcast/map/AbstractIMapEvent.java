@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ public abstract class AbstractIMapEvent extends EventObject implements IMapEvent
      * @param eventType The event type as an enum {@link EntryEventType} integer.
      * @throws IllegalArgumentException if source is null.
      */
-    protected AbstractIMapEvent(Object source, Member member, int eventType) {
+    public AbstractIMapEvent(Object source, Member member, int eventType) {
         super(source);
         this.name = (String) source;
         this.member = member;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -472,11 +472,14 @@ public interface MultiMap<K, V> extends BaseMultiMap<K, V> {
      * <li>the specified waiting time elapses.
      * </ul>
      * <p>
+     * The specified waiting time limits how long the lock operation waits to acquire
+     * the lock on the partition owner. It does not limit the total duration of this call.
+     * <p>
      * <b>Warning:</b> This method uses {@code hashCode} and {@code equals} of
      * the binary form of the {@code key}, not the actual implementations of
      * {@code hashCode} and {@code equals} defined in the {@code key}'s class.
      *
-     * @param time     the maximum time to wait for the lock
+     * @param time     the maximum time for the lock operation to wait for the lock on the partition owner
      * @param timeunit the time unit of the {@code time} argument
      * @return {@code true} if the lock was acquired, {@code false} if the
      * waiting time elapsed before the lock was acquired
@@ -498,12 +501,16 @@ public interface MultiMap<K, V> extends BaseMultiMap<K, V> {
      * <li>the lock is acquired by the current thread, or
      * <li>the specified waiting time elapses.
      * </ul>
+     * <p>
+     * The specified waiting time limits how long the lock operation waits to acquire
+     * the lock on the partition owner. It does not limit the total duration of this call.
+     * <p>
      * <b>Warning:</b> This method uses {@code hashCode} and {@code equals} of
      * the binary form of the {@code key}, not the actual implementations of
      * {@code hashCode} and {@code equals} defined in the {@code key}'s class.
      *
      * @param key           key to lock in this map
-     * @param time          maximum time to wait for the lock
+     * @param time          maximum time for the lock operation to wait for the lock on the partition owner
      * @param timeunit      time unit of the {@code time} argument
      * @param leaseTime     time to wait before releasing the lock
      * @param leaseTimeunit unit of time to specify lease time
@@ -519,7 +526,7 @@ public interface MultiMap<K, V> extends BaseMultiMap<K, V> {
     /**
      * Releases the lock for the specified key.
      * <p>
-     * It never blocks and returns immediately.
+     * When the cluster is stable, this method completes immediately without blocking.
      * <p>
      * <b>Warning:</b> This method uses {@code hashCode} and {@code equals} of
      * the binary form of the {@code key}, not the actual implementations of
@@ -532,7 +539,8 @@ public interface MultiMap<K, V> extends BaseMultiMap<K, V> {
     /**
      * Releases the lock for the specified key regardless of the lock owner.
      * <p>
-     * It always successfully unlocks the key, never blocks and returns immediately.
+     * When the cluster is stable, this method always successfully unlocks the key,
+     * never blocks, and returns immediately.
      * <p>
      * <b>Warning:</b> This method uses {@code hashCode} and {@code equals} of
      * the binary form of the {@code key}, not the actual implementations of

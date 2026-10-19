@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import com.hazelcast.config.MaxSizePolicy;
 import com.hazelcast.core.EntryView;
 import com.hazelcast.core.Offloadable;
 import com.hazelcast.core.ReadOnly;
+import com.hazelcast.cp.lock.FencedLock;
 import com.hazelcast.map.listener.MapListener;
 import com.hazelcast.map.listener.MapPartitionLostListener;
 import com.hazelcast.projection.Projection;
@@ -82,6 +83,12 @@ import java.util.function.Function;
  * <p>
  * This class does <em>not</em> allow {@code null} to be used as a key or
  * value.
+ * <p>
+ * <b>Locking</b>
+ * <p>
+ * {@code IMap} locks protect map entries during updates that require multiple
+ * operations. Use {@link FencedLock} for mutual exclusion when accessing
+ * external resources.
  * <p>
  * <b>Entry Processing</b>
  * <p>
@@ -882,7 +889,6 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
      *      CompletionStage<Void> future = map.putAllAsync(map);
      *      future.thenRunAsync(() -> System.out.println("All the entries are added"));
      * }</pre>
-     *  {@inheritDoc}
      * <p>
      * No atomicity guarantees are given. It could be that in case of failure
      * some of the key/value-pairs get written, while others are not.
@@ -1202,10 +1208,11 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
     CompletionStage<Boolean> deleteAsync(@Nonnull K key);
 
     /**
-     * Tries to remove the entry with the given key from this map
-     * within the specified timeout value. If the key is already locked by another
-     * thread and/or member, then this operation will wait the timeout
-     * amount for acquiring the lock.
+     * Tries to remove the entry with the given key from this map. If the key is
+     * locked by another thread or member, the operation waits to acquire the lock.
+     * <p>
+     * The specified timeout limits how long the operation waits to acquire the lock
+     * on the partition owner. It does not limit the total duration of this call.
      * <p>
      * <b>Warning:</b>
      * <p>
@@ -1228,7 +1235,7 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
      * capacity.
      *
      * @param key      key of the entry
-     * @param timeout  maximum time to wait for acquiring the lock for the key
+     * @param timeout  maximum time for the operation to wait for the lock on the partition owner
      * @param timeunit time unit for the timeout
      * @return {@code true} if the remove is successful, {@code false} otherwise
      * @throws NullPointerException if the specified key is {@code null}
@@ -1236,10 +1243,12 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
     boolean tryRemove(@Nonnull K key, long timeout, @Nonnull TimeUnit timeunit);
 
     /**
-     * Tries to put the given key and value into this map within a specified
-     * timeout value. If this method returns false, it means that
-     * the caller thread could not acquire the lock for the key within the
-     * timeout duration, thus the put operation is not successful.
+     * Tries to put the given key and value into this map.
+     * <p>
+     * The specified timeout limits how long the operation waits to acquire the lock
+     * on the partition owner. It does not limit the total duration of this call.
+     * If this method returns {@code false}, the operation did not acquire the lock
+     * within the timeout and the put was not successful.
      * <p>
      * <b>Warning:</b>
      * <p>
@@ -1267,7 +1276,7 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
      *
      * @param key      key of the entry
      * @param value    value of the entry
-     * @param timeout  maximum time to wait
+     * @param timeout  maximum time for the operation to wait for the lock on the partition owner
      * @param timeunit time unit for the timeout
      * @return {@code true} if the put is successful, {@code false} otherwise
      * @throws NullPointerException if the specified key or value is {@code null}
@@ -2039,6 +2048,9 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
      * <li>the specified waiting time elapses.
      * </ul>
      * <p>
+     * The specified waiting time limits how long the lock operation waits to acquire
+     * the lock on the partition owner. It does not limit the total duration of this call.
+     * <p>
      * <b>Warning:</b>
      * <p>
      * This method uses {@code hashCode} and {@code equals} of the binary form of
@@ -2046,7 +2058,7 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
      * defined in the {@code key}'s class.
      *
      * @param key      key to lock in this map
-     * @param time     maximum time to wait for the lock
+     * @param time     maximum time for the lock operation to wait for the lock on the partition owner
      * @param timeunit time unit of the {@code time} argument
      * @return {@code true} if the lock was acquired, {@code false} if the waiting time
      * elapsed before the lock was acquired
@@ -2068,6 +2080,9 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
      * <li>the specified waiting time elapses.
      * </ul>
      * <p>
+     * The specified waiting time limits how long the lock operation waits to acquire
+     * the lock on the partition owner. It does not limit the total duration of this call.
+     * <p>
      * <b>Warning:</b>
      * <p>
      * This method uses {@code hashCode} and {@code equals} of the binary form of
@@ -2075,7 +2090,7 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
      * defined in the {@code key}'s class.
      *
      * @param key           key to lock in this map
-     * @param time          maximum time to wait for the lock
+     * @param time          maximum time for the lock operation to wait for the lock on the partition owner
      * @param timeunit      time unit of the {@code time} argument
      * @param leaseTime     time to wait before releasing the lock
      * @param leaseTimeunit unit of time to specify lease time
@@ -2090,8 +2105,8 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
             throws InterruptedException;
 
     /**
-     * Releases the lock for the specified key. It never blocks and
-     * returns immediately.
+     * Releases the lock for the specified key. When the cluster is stable, this
+     * method completes immediately without blocking.
      * <p>
      * If the current thread is the holder of this lock, then the hold
      * count is decremented.  If the hold count is zero, then the lock
@@ -2112,8 +2127,8 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
 
     /**
      * Releases the lock for the specified key regardless of the lock owner.
-     * It always successfully unlocks the key, never blocks,
-     * and returns immediately.
+     * When the cluster is stable, this method always successfully unlocks the key,
+     * never blocks, and returns immediately.
      * <p>
      * <b>Warning:</b>
      * <p>
@@ -2584,7 +2599,7 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
      * @return an immutable collection clone of the values contained in this map
      * @throws QueryResultSizeExceededException if query result size limit is exceeded
      * @see ClusterProperty#QUERY_RESULT_SIZE_LIMIT
-     * @since 5.4.0
+     * @since 5.4
      */
     Collection<V> localValues();
 
@@ -2608,7 +2623,7 @@ public interface IMap<K, V> extends ConcurrentMap<K, V>, BaseMap<K, V>, Iterable
     * @throws QueryResultSizeExceededException if query result size limit is exceeded
     * @throws NullPointerException             if the predicate is {@code null}
     * @see ClusterProperty#QUERY_RESULT_SIZE_LIMIT
-    * @since 5.4.0
+    * @since 5.4
     */
     Collection<V> localValues(@Nonnull Predicate<K, V> predicate);
 

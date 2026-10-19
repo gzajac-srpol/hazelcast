@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import java.util.function.Consumer;
  *
  * @see BlockingOperation
  * @see Offload
- * @since 6.0
+ * @since 5.6
  */
 public interface AsynchronouslyExecutingBackupOperation {
     /**

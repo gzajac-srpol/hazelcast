@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2025 Hazelcast Inc.
+  ~ Copyright 2026 Hazelcast Inc.
   ~
   ~ Licensed under the Hazelcast Community License (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -35,6 +35,11 @@
     <properties>
         <!-- needed for CheckStyle -->
         <main.basedir>${project.basedir}/../..</main.basedir>
+        <!--
+			Configure Surefire executions to execute shared archunit tests 
+			https://maven.apache.org/surefire/maven-surefire-plugin/test-mojo.html#dependenciesToScan
+		-->
+        <dependenciesToScan>${project.groupId}:hazelcast-archunit-rules</dependenciesToScan>
     </properties>
 
     <build>
@@ -63,8 +68,8 @@
                 <configuration combine.self="append">
                     <relocations>
                         <relocation>
-                            <pattern>com.amazonaws</pattern>
-                            <shadedPattern>${relocation.root}.com.amazonaws</shadedPattern>
+                            <pattern>software.amazon.awssdk</pattern>
+                            <shadedPattern>${relocation.root}.software.amazon.awssdk</shadedPattern>
                         </relocation>
                     </relocations>
                 </configuration>
@@ -74,14 +79,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-kinesis</artifactId>
-            <version>${aws.sdk.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-cbor</artifactId>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>kinesis</artifactId>
         </dependency>
 
         <!-- TEST -->
@@ -96,13 +95,6 @@
             <artifactId>toxiproxy</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
 
 </project>

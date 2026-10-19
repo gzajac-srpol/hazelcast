@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ public enum PhoneHomeMetrics implements Metric {
      * Maintained for backward-compatibility (in PhoneHome reports), but otherwise deprecated, please use
      * {@link #EXACT_CLUSTER_SIZE} instead.
      */
-    @Deprecated
+    @Deprecated(since = "5.0", forRemoval = true)
     CLUSTER_SIZE("crsz"),
     EXACT_CLUSTER_SIZE("ecrsz"),
     TIME_TAKEN_TO_CLUSTER_UP("cuptm"),
@@ -204,7 +204,10 @@ public enum PhoneHomeMetrics implements Metric {
 
     UCN_ENABLED("ucnenabled"),
     UCN_NAMESPACE_COUNT("ucncount"),
-    V_CPU_COUNT("vcpuct");
+    V_CPU_COUNT("vcpuct"),
+
+    DIAGNOSTICS_DYNAMIC_ENABLED_COUNT("diagdenbct"),
+    DIAGNOSTICS_DYNAMIC_AUTO_OFF_COUNT("diagdoffct");
 
     private final String query;
 

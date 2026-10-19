@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,9 @@ import com.hazelcast.test.AssertTask;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -57,11 +60,13 @@ public abstract class StreamSourceStageTestBase extends JetTestSupport {
             s -> s.withTimestamps(i -> i + 1, 0).setLocalParallelism(1);
 
     @Before
+    @BeforeEach
     public void before() {
         WatermarkCollector.watermarks.clear();
     }
 
     @BeforeClass
+    @BeforeAll
     public static void beforeClass() {
         Config config = new Config();
         config.getMapConfig("*")
@@ -73,6 +78,7 @@ public abstract class StreamSourceStageTestBase extends JetTestSupport {
     }
 
     @AfterClass
+    @AfterAll
     public static void afterClass() {
         factory.terminateAll();
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -110,5 +110,8 @@ public class SplitBrainMergePolicyProvider {
 
     protected boolean isPredefinedMergePolicy(String policy) {
         return OUT_OF_THE_BOX_MERGE_POLICIES.containsKey(policy);
+    }
+
+    public void clearNamespaceCache(String namespace) {
     }
 }

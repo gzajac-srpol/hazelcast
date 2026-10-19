@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +49,6 @@ import static com.hazelcast.internal.util.ThreadUtil.assertRunningOnPartitionThr
 import static com.hazelcast.internal.util.ThreadUtil.isRunningOnPartitionThread;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
-import static java.util.Collections.newSetFromMap;
 import static java.util.Collections.singleton;
 
 abstract class AbstractPartitionOperation extends Operation implements IdentifiedDataSerializable {
@@ -381,7 +380,7 @@ abstract class AbstractPartitionOperation extends Operation implements Identifie
 
     // return a new thread-safe Set populated with all elements from previous
     <T> Set<T> newSetOf(Collection<T> previous) {
-        Set<T> newSet = newSetFromMap(new ConcurrentHashMap<>());
+        Set<T> newSet = ConcurrentHashMap.newKeySet();
         newSet.addAll(previous);
         return newSet;
     }

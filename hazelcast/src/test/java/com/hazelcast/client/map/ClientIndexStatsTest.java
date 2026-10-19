@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -141,7 +141,7 @@ public class ClientIndexStatsTest extends LocalIndexStatsTest {
     }
 
     @Test
-    @Ignore("HZ-4455")
+    @Ignore("HZOLD-4455")
     public void shouldUseIndexFromClient_whenMemberProxyDestroyed() {
         testIndexWithoutMapProxy((mapName) -> member1.getMap(mapName).destroy());
     }

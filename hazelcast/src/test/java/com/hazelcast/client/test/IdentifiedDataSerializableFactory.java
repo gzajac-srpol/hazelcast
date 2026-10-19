@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -480,7 +480,7 @@ public class IdentifiedDataSerializableFactory implements DataSerializableFactor
 
         @Override
         public Boolean call() {
-            hazelcastInstance.getCPSubsystem().getCountDownLatch("callableStartedLatch").countDown();
+            hazelcastInstance.<String, Boolean>getMap("coordination").put(startSignalLatchName, true);
             try {
                 Thread.sleep(Long.MAX_VALUE);
             } catch (InterruptedException e) {
@@ -542,5 +542,10 @@ public class IdentifiedDataSerializableFactory implements DataSerializableFactor
             return true;
         }
         return o != null && getClass() == o.getClass();
+    }
+
+    @Override
+    public int hashCode() {
+        return 0;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package com.hazelcast.map;
 
+import com.hazelcast.config.InMemoryFormat;
 import com.hazelcast.config.IndexConfig;
 import com.hazelcast.config.IndexType;
 import com.hazelcast.map.listener.MapListener;
@@ -142,11 +143,19 @@ public interface QueryCache<K, V> {
     Set<K> keySet();
 
     /**
+     * When configured with {@link InMemoryFormat#OBJECT}, values in the
+     * returned collection may be references to cached objects. Mutating them
+     * can affect cached values and leave configured indexes inconsistent.
+     *
      * @see IMap#values()
      */
     Collection<V> values();
 
     /**
+     * When configured with {@link InMemoryFormat#OBJECT}, values in the
+     * returned collection may be references to cached objects. Mutating them
+     * can affect cached values and leave configured indexes inconsistent.
+     *
      * @see IMap#entrySet()
      */
     Set<Map.Entry<K, V>> entrySet();
@@ -157,11 +166,19 @@ public interface QueryCache<K, V> {
     Set<K> keySet(Predicate<K, V> predicate);
 
     /**
+     * When configured with {@link InMemoryFormat#OBJECT}, values in the
+     * returned collection may be references to cached objects. Mutating them
+     * can affect cached values and leave configured indexes inconsistent.
+     *
      * @see IMap#values(Predicate)
      */
     Collection<V> values(Predicate<K, V> predicate);
 
     /**
+     * When configured with {@link InMemoryFormat#OBJECT}, values in the
+     * returned collection may be references to cached objects. Mutating them
+     * can affect cached values and leave configured indexes inconsistent.
+     *
      * @see IMap#entrySet(Predicate)
      */
     Set<Map.Entry<K, V>> entrySet(Predicate<K, V> predicate);

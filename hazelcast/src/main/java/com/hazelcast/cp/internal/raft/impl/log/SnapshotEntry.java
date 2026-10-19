@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import java.util.LinkedHashSet;
 import static java.util.Collections.unmodifiableCollection;
 
 /**
- * Represents a snapshot in the {@link RaftLog}.
+ * Represents a snapshot in the {@code RaftLog}.
  * <p>
  * The snapshot entry is sent to followers chunk by
  * chunk using the {@link InstallSnapshotRequest} RPC.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -146,7 +146,6 @@ public interface InternalHotRestartService {
     /**
      * Waits until partition replicas (primaries and backups) get in sync.
      *
-     * @param timeout timeout
      * @param unit time unit
      * @param supplier the {@link SafeStateCheckOperation} supplier
      * @throws IllegalStateException when timeout happens or a member leaves the cluster while waiting

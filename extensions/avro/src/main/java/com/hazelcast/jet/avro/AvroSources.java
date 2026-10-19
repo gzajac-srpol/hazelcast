@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ import javax.annotation.Nonnull;
 public final class AvroSources {
 
     /**
-     * Ensure that this does not collide with any constants in {@link com.hazelcast.jet.pipeline.ConnectorNames}
+     * Ensure that this does not collide with any constants in {@link com.hazelcast.jet.pipeline.impl.ConnectorNames}
      */
     static final String AVRO_SOURCE_CONNECTOR_NAME = "avroSource";
 

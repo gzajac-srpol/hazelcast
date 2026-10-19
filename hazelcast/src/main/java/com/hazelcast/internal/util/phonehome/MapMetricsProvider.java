@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,8 +81,8 @@ class MapMetricsProvider implements MetricsProvider {
         context.collect(AVERAGE_GET_LATENCY_OF_MAPS_WITHOUT_MAPSTORE,
                 mapOperationLatency(node, IS_MAP_STORE_ENABLED.negate(),
                         LocalMapStats::getTotalGetLatency, LocalMapStats::getGetOperationCount));
-        context.collect(TOTAL_MAP_VALUES_CALLS, mapCallAggregator(node, LocalMapStats::getValuesCallsCount));
-        context.collect(TOTAL_MAP_ENTRYSET_CALLS, mapCallAggregator(node, LocalMapStats::getEntrySetCallsCount));
+        context.collect(TOTAL_MAP_VALUES_CALLS, mapCallAggregator(node, LocalMapStats::getValuesCallCount));
+        context.collect(TOTAL_MAP_ENTRYSET_CALLS, mapCallAggregator(node, LocalMapStats::getEntrySetCallCount));
         context.collect(TOTAL_MAP_QUERY_SIZE_LIMITER_HITS,
                 mapCallAggregator(node, LocalMapStats::getQueryResultSizeExceededCount));
     }

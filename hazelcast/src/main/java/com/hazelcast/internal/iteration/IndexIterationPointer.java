@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ import static com.hazelcast.jet.datamodel.Tuple2.tuple2;
  *     <li>NULL end does not make sense for composite index because composite index
  *     stores {@link com.hazelcast.query.impl.CompositeValue} which are never null, even if
  *     they consist entirely of {@link com.hazelcast.query.impl.AbstractIndex#NULL} values.</li>
- *     </li>beware of distinction between Java null and NULL - it is not always obvious.</li>
+ *     <li>beware of distinction between Java null and NULL - it is not always obvious.</li>
  * </ol>
  * <p>
  * {@link IndexIterationPointer} set operation use the following ordering:
@@ -81,7 +81,7 @@ public class IndexIterationPointer implements IdentifiedDataSerializable {
             Comparator.comparing(IndexIterationPointer::getTo, OrderedIndexStore.SPECIAL_AWARE_COMPARATOR);
     // Note that this ordering is not fully compatible with equals as it ignores inclusiveness.
     // This is sufficient for the purpose of normalization.
-    // TODO: revisit in https://hazelcast.atlassian.net/browse/HZ-3093
+    // TODO: revisit in https://hazelcast.atlassian.net/browse/HZOLD-3093
     //  maybe this is ok because IndexIterationPointer should not (?) contain NativeMemoryData
     private static final Comparator<IndexIterationPointer> POINTER_COMPARATOR = FROM_COMPARATOR.thenComparing(TO_COMPARATOR);
     private static final Comparator<IndexIterationPointer> POINTER_COMPARATOR_REVERSED = POINTER_COMPARATOR.reversed();

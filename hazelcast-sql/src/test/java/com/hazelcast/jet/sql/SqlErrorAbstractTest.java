@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,9 @@ import com.hazelcast.sql.SqlResult;
 import com.hazelcast.sql.SqlRow;
 import com.hazelcast.sql.SqlStatement;
 import com.hazelcast.sql.impl.SqlErrorCode;
+import com.hazelcast.test.HazelcastSerialClassRunner;
 import org.junit.After;
+import org.junit.runner.RunWith;
 
 import javax.annotation.Nonnull;
 import java.util.HashMap;
@@ -38,11 +40,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+@RunWith(HazelcastSerialClassRunner.class)
 public abstract class SqlErrorAbstractTest extends SqlTestSupport {
 
     protected static final String MAP_NAME = "map";

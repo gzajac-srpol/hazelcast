@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ public enum MultipleEntryOpSteps implements IMapOpStep {
         public void runStep(State state) {
             Collection<Data> keysToLoad = state.getKeysToLoad();
             DefaultRecordStore recordStore = ((DefaultRecordStore) state.getRecordStore());
-            List keyBiTupleList = recordStore.loadMultipleKeys(keysToLoad);
+            List keyBiTupleList = recordStore.loadValueWithTtl(keysToLoad, state.getNow());
             state.setLoadedKeyAndOldValueWithTtlPairs(keyBiTupleList);
         }
 

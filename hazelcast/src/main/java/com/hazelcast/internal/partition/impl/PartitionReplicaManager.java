@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,7 +61,6 @@ import static com.hazelcast.internal.metrics.MetricDescriptorConstants.PARTITION
 import static com.hazelcast.internal.metrics.MetricDescriptorConstants.PARTITIONS_METRIC_PARTITION_REPLICA_MANAGER_SYNC_REQUEST_COUNTER;
 import static com.hazelcast.internal.util.counters.MwCounter.newMwCounter;
 import static java.lang.String.format;
-import static java.util.Collections.newSetFromMap;
 
 /**
  * Maintains the version values for the partition replicas and manages the replica-related operations for partitions
@@ -135,7 +134,7 @@ public class PartitionReplicaManager implements PartitionReplicaVersionManager {
         replicaSyncTimeoutScheduler = EntryTaskSchedulerFactory.newScheduler(globalScheduler,
                 new ReplicaSyncTimeoutProcessor(), ScheduleType.POSTPONE);
 
-        replicaSyncRequests = newSetFromMap(new ConcurrentHashMap<>(partitionCount));
+        replicaSyncRequests = ConcurrentHashMap.newKeySet(partitionCount);
     }
 
     /**
@@ -383,7 +382,6 @@ public class PartitionReplicaManager implements PartitionReplicaVersionManager {
      * scheduled synchronization, clear the ongoing sync flag and release a synchronization permit.
      *
      * @param partitionId  the partition being synchronized
-     * @param namespace    namespace
      * @param replicaIndex the index of the replica being synchronized
      */
     // called in operation threads

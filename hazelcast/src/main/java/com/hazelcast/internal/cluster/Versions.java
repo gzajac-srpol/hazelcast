@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,6 +67,16 @@ public final class Versions {
      * Cluster version 5.5
      */
     public static final Version V5_5 = Version.of(5, 5);
+
+    /**
+     * Cluster version 5.6
+     */
+    public static final Version V5_6 = Version.of(5, 6);
+
+    /**
+     * Cluster version 5.7
+     */
+    public static final Version V5_7 = Version.of(5, 7);
 
     /**
      * Cluster version 6.0

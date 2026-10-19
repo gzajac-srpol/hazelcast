@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,7 +53,9 @@ import com.hazelcast.sql.impl.type.converter.ZonedDateTimeConverter;
 import com.hazelcast.version.Version;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectStreamException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -462,6 +464,21 @@ public class QueryDataType implements VersionedIdentifiedDataSerializable, Seria
         }
     }
 
+    @Serial
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+
+        if (isCustomType()) {
+            // equivalent check to finalizeFields() invocation during IDS deserialization
+            // here we should already have objectFields deserialized directly, not built via builder.
+            // also nested types are handled automatically.
+            if (objectFields ==  null || objectFields.isEmpty()) {
+                throw new IllegalStateException("Type has no fields");
+            }
+        }
+    }
+
+    @Serial
     private Object readResolve() throws ObjectStreamException {
         return isCustomType() ? this : resolveForConverter(converter);
     }

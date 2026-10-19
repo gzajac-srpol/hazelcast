@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,6 @@ import static com.hazelcast.internal.config.AliasedDiscoveryConfigUtils.aliasedD
 import static com.hazelcast.internal.config.ConfigUtils.lookupByPattern;
 import static java.text.MessageFormat.format;
 import static java.util.Collections.singletonMap;
-import static org.codehaus.groovy.runtime.InvokerHelper.asList;
 import static org.junit.Assert.assertEquals;
 
 public class ConfigCompatibilityChecker {
@@ -754,7 +753,8 @@ public class ConfigCompatibilityChecker {
                             && c1.getBaseDir().getAbsoluteFile().equals(c2.getBaseDir().getAbsoluteFile())
                             && c1.getDataLoadTimeoutSeconds() == c2.getDataLoadTimeoutSeconds()
                             && c1.getCPMemberPriority() == c2.getCPMemberPriority()
-                            && c1.getCPMapLimit() == c2.getCPMapLimit();
+                            && c1.getCPMapLimit() == c2.getCPMapLimit()
+                            && c1.isAutoStepDownWhenLeader() == c2.isAutoStepDownWhenLeader();
 
             if (!cpSubsystemConfigValuesEqual) {
                 return false;
@@ -1890,8 +1890,8 @@ public class ConfigCompatibilityChecker {
                 return false;
             }
 
-            List<PermissionConfig> configs1 = asList(c1.toArray());
-            List<PermissionConfig> configs2 = asList(c2.toArray());
+            List<PermissionConfig> configs1 = List.copyOf(c1);
+            Set<PermissionConfig> configs2 = Set.copyOf(c2);
 
             for (PermissionConfig a : configs1) {
                 if (!configs2.contains(a)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import com.hazelcast.jet.impl.util.AsyncSnapshotWriterImpl;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.partition.PartitioningStrategy;
+import com.hazelcast.spi.properties.HazelcastProperties;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -159,6 +160,8 @@ public interface InternalSerializationService extends SerializationService, Disp
     PortableContext getPortableContext();
 
     ClassLoader getClassLoader();
+
+    HazelcastProperties getHazelcastProperties();
 
     /**
      * Returns the byte order used when serializing/deserializing objects. A notable exception is the top-level object's

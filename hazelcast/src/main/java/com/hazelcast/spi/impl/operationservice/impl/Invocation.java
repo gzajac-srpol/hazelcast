@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,6 @@ import com.hazelcast.spi.impl.operationservice.TargetAware;
 import com.hazelcast.spi.impl.operationservice.impl.responses.CallTimeoutResponse;
 import com.hazelcast.spi.impl.operationservice.impl.responses.ErrorResponse;
 import com.hazelcast.spi.impl.operationservice.impl.responses.NormalResponse;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.invoke.VarHandle;
 import java.util.concurrent.RejectedExecutionException;
@@ -389,9 +388,10 @@ public abstract class Invocation<T> extends BaseInvocation implements OperationR
         completeExceptionally(cause);
     }
 
-    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
-            justification = "We have the guarantee that only a single thread at any given time can change the volatile field")
+//    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+//            justification = "We have the guarantee that only a single thread at any given time can change the volatile field")
     void notifyCallTimeout() {
+        context.callTimeoutCount.inc();
         if (!(op instanceof BlockingOperation)) {
             // if the call is not a BlockingOperation, then in case of a call-timeout, we are not going to retry;
             // only blocking operations are going to be retried, because they rely on a repeated execution mechanism
@@ -562,8 +562,8 @@ public abstract class Invocation<T> extends BaseInvocation implements OperationR
     }
 
 
-    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
-            justification = "We have the guarantee that only a single thread at any given time can change the volatile field")
+//    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+//            justification = "We have the guarantee that only a single thread at any given time can change the volatile field")
     private void doInvoke(boolean isAsync) {
         if (!engineActive()) {
             return;
@@ -756,11 +756,11 @@ public abstract class Invocation<T> extends BaseInvocation implements OperationR
         doInvoke(false);
     }
 
-    Address getTargetAddress() {
+    public Address getTargetAddress() {
         return targetAddress;
     }
 
-    Member getTargetMember() {
+    public Member getTargetMember() {
         return targetMember;
     }
 
@@ -866,6 +866,7 @@ public abstract class Invocation<T> extends BaseInvocation implements OperationR
         final OperationServiceImpl operationService;
         final OperationExecutor operationExecutor;
         final MwCounter retryCount;
+        final MwCounter callTimeoutCount;
         final InternalSerializationService serializationService;
         final Address thisAddress;
         final OutboundOperationHandler outboundOperationHandler;
@@ -887,6 +888,7 @@ public abstract class Invocation<T> extends BaseInvocation implements OperationR
                 OperationServiceImpl operationService,
                 OperationExecutor operationExecutor,
                 MwCounter retryCount,
+                MwCounter callTimeoutCount,
                 InternalSerializationService serializationService,
                 Address thisAddress,
                 OutboundOperationHandler outboundOperationHandler,
@@ -906,6 +908,7 @@ public abstract class Invocation<T> extends BaseInvocation implements OperationR
             this.operationService = operationService;
             this.operationExecutor = operationExecutor;
             this.retryCount = retryCount;
+            this.callTimeoutCount = callTimeoutCount;
             this.serializationService = serializationService;
             this.thisAddress = thisAddress;
             this.outboundOperationHandler = outboundOperationHandler;

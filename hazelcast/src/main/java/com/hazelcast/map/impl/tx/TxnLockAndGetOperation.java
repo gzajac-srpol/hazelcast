@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ public class TxnLockAndGetOperation
         }
         Record record = recordStore.getRecordOrNull(dataKey, false);
         if (record == null && shouldLoad) {
-            record = recordStore.loadRecordOrNull(dataKey, false,
+            record = recordStore.loadAndCreateRecordOrNull(dataKey, false,
                     getCallerAddress(), Clock.currentTimeMillis());
         }
         Data value = record == null ? null : mapServiceContext.toData(record.getValue());

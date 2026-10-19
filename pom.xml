@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+  ~ Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -28,8 +28,14 @@
     </parent>
 
     <artifactId>hazelcast-root</artifactId>
-    <packaging>pom</packaging>
+    <!--
+        This is duplicated and could instead be inferred from the parent version
+        But versions-maven-plugin does not support this and breaks
+        https://github.com/mojohaus/versions/blob/a40373df037b6bcebd915901f72433891bfe691e/versions-maven-plugin/src/main/java/org/codehaus/mojo/versions/SetMojo.java#L330-L332
+        So instead we need to duplicate
+    -->
     <version>6.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
     <name>Hazelcast Root</name>
     <description>Hazelcast In-Memory DataGrid</description>
     <url>http://www.hazelcast.com/</url>
@@ -40,9 +46,11 @@
         <module>hazelcast</module>
         <module>hazelcast-archunit-rules</module>
         <module>hazelcast-spring</module>
+        <module>hazelcast-spring-boot-autoconfiguration</module>
         <module>hazelcast-spring-tests</module>
         <module>hazelcast-build-utils</module>
         <module>hazelcast-sql</module>
+        <module>hazelcast-vector</module>
     </modules>
 
     <properties>
@@ -50,7 +58,6 @@
         <target.dir>target</target.dir>
         <timestamp>${maven.build.timestamp}</timestamp>
 
-        <hazelcast.distribution>Hazelcast</hazelcast.distribution>
         <hazelcast.serialization.version>1</hazelcast.serialization.version>
         <hazelcast.serverMainClass>com.hazelcast.core.server.HazelcastMemberStarter</hazelcast.serverMainClass>
 
@@ -64,9 +71,6 @@
         <checkstyle.configLocation>${main.basedir}/checkstyle/checkstyle.xml</checkstyle.configLocation>
         <checkstyle.supressionsLocation>${main.basedir}/checkstyle/suppressions.xml</checkstyle.supressionsLocation>
         <checkstyle.headerLocation>${main.basedir}/checkstyle/ClassHeaderApache.txt</checkstyle.headerLocation>
-
-        <shade.jar-with-dependencies.phase>package</shade.jar-with-dependencies.phase>
-        <fat.dependency.classifier>jar-with-dependencies</fat.dependency.classifier>
 
         <!--
         Allow access to Operating system metrics:
@@ -130,6 +134,13 @@
         <name>Hazelcast, Inc.</name>
         <url>http://www.hazelcast.com/</url>
     </organization>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>private-repository</id>
+            <url>https://repository.hazelcast.com/snapshot-internal</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <build>
         <sourceDirectory>src/main/java</sourceDirectory>
@@ -210,11 +221,10 @@
                     <parallel>methods</parallel -->
                     <!-- JaCoCo will use the argLine set here. Test profiles override it. -->
                     <argLine>
+                        ${commonArgLine}
                         ${vmHeapSettings}
                         ${javaModuleArgs}
-                        -Dhazelcast.phone.home.enabled=false
                         -Dhazelcast.test.use.network=false
-                        -Dlog4j.skipJansi=true
                         ${extraVmArgs}
                     </argLine>
                     <includes>
@@ -244,11 +254,10 @@
                 <configuration combine.self="override">
                     <trimStackTrace>false</trimStackTrace>
                     <argLine>
+                        ${commonArgLine}
                         ${vmHeapSettings}
                         ${javaModuleArgs}
-                        -Dhazelcast.phone.home.enabled=false
                         -Dhazelcast.test.use.network=true
-                        -Dlog4j.skipJansi=true
                         ${extraVmArgs}
                     </argLine>
                     <useManifestOnlyJar>false</useManifestOnlyJar>
@@ -372,14 +381,11 @@
                                     <forkCount>0.5C</forkCount>
                                     <reuseForks>true</reuseForks>
                                     <argLine>
+                                        ${commonArgLine}
                                         ${vmHeapSettings}
                                         ${javaModuleArgs}
-                                        -ea
-                                        -Dhazelcast.phone.home.enabled=false
                                         -Dhazelcast.test.use.network=false
                                         -Dhazelcast.test.multiple.jvm=true
-                                        -Dlog4j.configurationFile=log4j2.xml
-                                        -Dlog4j.skipJansi=true
                                         ${extraVmArgs}
                                     </argLine>
                                     <includes>
@@ -417,12 +423,10 @@
                                     <useFile>false</useFile>
                                     <trimStackTrace>false</trimStackTrace>
                                     <argLine>
+                                        ${commonArgLine}
                                         ${vmHeapSettings}
                                         ${javaModuleArgs}
-                                        -Dhazelcast.phone.home.enabled=false
                                         -Dhazelcast.test.use.network=false
-                                        -Dlog4j.configurationFile=log4j2.xml
-                                        -Dlog4j.skipJansi=true
                                         ${extraVmArgs}
                                     </argLine>
                                     <includes>
@@ -453,12 +457,10 @@
                             <useFile>false</useFile>
                             <trimStackTrace>false</trimStackTrace>
                             <argLine>
+                                ${commonArgLine}
                                 ${vmHeapSettings}
                                 ${javaModuleArgs}
-                                -Dhazelcast.phone.home.enabled=false
                                 -Dhazelcast.test.use.network=false
-                                -Dlog4j.configurationFile=log4j2.xml
-                                -Dlog4j.skipJansi=true
                                 ${extraVmArgs}
                             </argLine>
                             <useManifestOnlyJar>false</useManifestOnlyJar>
@@ -482,62 +484,6 @@
         </profile>
 
         <profile>
-            <!--
-            Configures execution to optimize runtime of the PR builder, by excluding tasks not required for build validation (e.g., shading)
-            -->
-            <id>pr-builder</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>usercodedeployment-child-parent</id>
-                                <configuration>
-                                    <skipAssembly>false</skipAssembly>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>usercodedeployment-entry-processor-with-anonymous-and-inner</id>
-                                <configuration>
-                                    <skipAssembly>false</skipAssembly>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>usercodedeployment-incrementing-entry-processor</id>
-                                <configuration>
-                                    <skipAssembly>false</skipAssembly>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>usercodedeployment-incrementing-entry-processor-conflicting</id>
-                                <configuration>
-                                    <skipAssembly>false</skipAssembly>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>usercodedeployment-shaded-classes</id>
-                                <configuration>
-                                    <skipAssembly>false</skipAssembly>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-            <properties>
-                <!--
-                    To improve PR builder runtime, skip *some* assembly-plugins that are not required for build validation
-                    https://github.com/hazelcast/hazelcast/pull/18521
-                -->
-                <assembly.skipAssembly>true</assembly.skipAssembly>
-                <!-- Set the classifier to empty in this profile to use regular jar-->
-                <fat.dependency.classifier/>
-                <shade.jar-with-dependencies.phase>none</shade.jar-with-dependencies.phase>
-            </properties>
-        </profile>
-
-        <profile>
             <id>test-coverage-Local</id>
             <properties>
                 <vmHeapSettings>-Xms128m -Xmx1G</vmHeapSettings>
@@ -548,25 +494,6 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>cobertura-maven-plugin</artifactId>
-                        <configuration>
-                            <instrumentation>
-                                <ignores/>
-                                <excludes/>
-                            </instrumentation>
-                            <check/>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>clean</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-
-                    <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration combine.self="override">
@@ -574,11 +501,10 @@
                             <trimStackTrace>false</trimStackTrace>
                             <testFailureIgnore>true</testFailureIgnore>
                             <argLine>
+                                ${commonArgLine}
                                 ${vmHeapSettings}
                                 ${javaModuleArgs}
-                                -Dhazelcast.phone.home.enabled=false
                                 -Dhazelcast.test.use.network=false
-                                -Dlog4j.skipJansi=true
                                 ${extraVmArgs}
                             </argLine>
                             <includes>
@@ -593,14 +519,6 @@
                     </plugin>
                 </plugins>
             </build>
-            <reporting>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>cobertura-maven-plugin</artifactId>
-                    </plugin>
-                </plugins>
-            </reporting>
         </profile>
 
         <profile>
@@ -610,13 +528,12 @@
             </modules>
             <properties>
                 <argLine>
+                    ${commonArgLine}
                     ${vmHeapSettings}
                     ${javaModuleArgs}
-                    -Dhazelcast.phone.home.enabled=false
                     -Dhazelcast.test.use.network=false
                     -Dhazelcast.operation.call.timeout.millis=120000
                     -Dhazelcast.graceful.shutdown.max.wait=240
-                    -Dlog4j.skipJansi=true
                     ${extraVmArgs}
                 </argLine>
             </properties>
@@ -675,11 +592,10 @@
                         <configuration combine.self="override">
                             <trimStackTrace>false</trimStackTrace>
                             <argLine>
+                                ${commonArgLine}
                                 ${vmHeapSettings}
                                 ${javaModuleArgs}
-                                -Dhazelcast.phone.home.enabled=false
                                 -Dhazelcast.test.use.network=true
-                                -Dlog4j.skipJansi=true
                                 ${extraVmArgs}
                             </argLine>
                             <excludedGroups>
@@ -702,7 +618,7 @@
         </profile>
 
         <profile>
-            <id>release-devel</id>
+            <id>release-snapshot</id>
             <build>
                 <plugins>
                     <plugin>
@@ -729,17 +645,6 @@
             <id>release</id>
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.7.0</version>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <serverId>release-repository</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                        </configuration>
-                    </plugin>
                     <plugin>
                         <groupId>com.hazelcast.maven</groupId>
                         <artifactId>attribution-maven-plugin</artifactId>
@@ -782,11 +687,10 @@
                             <useFile>false</useFile>
                             <trimStackTrace>false</trimStackTrace>
                             <argLine>
+                                ${commonArgLine}
                                 ${vmHeapSettings}
                                 ${javaModuleArgs}
-                                -Dhazelcast.phone.home.enabled=false
                                 -Dhazelcast.test.use.network=false
-                                -Dlog4j.skipJansi=true
                                 ${extraVmArgs}
                             </argLine>
                             <groups>
@@ -813,11 +717,10 @@
                         <configuration combine.self="override">
                             <trimStackTrace>false</trimStackTrace>
                             <argLine>
+                                ${commonArgLine}
                                 ${vmHeapSettings}
                                 ${javaModuleArgs}
-                                -Dhazelcast.phone.home.enabled=false
                                 -Dhazelcast.test.use.network=true
-                                -Dlog4j.skipJansi=true
                                 ${extraVmArgs}
                             </argLine>
                             <useManifestOnlyJar>false</useManifestOnlyJar>
@@ -860,11 +763,10 @@
                             <trimStackTrace>false</trimStackTrace>
                             <parallel>none</parallel>
                             <argLine>
+                                ${commonArgLine}
                                 ${vmHeapSettings}
                                 ${javaModuleArgs}
-                                -Dhazelcast.phone.home.enabled=false
                                 -Dhazelcast.test.use.network=false
-                                -Dlog4j.skipJansi=true
                                 ${extraVmArgs}
                             </argLine>
                             <includes>
@@ -889,11 +791,10 @@
                         <configuration combine.self="override">
                             <trimStackTrace>false</trimStackTrace>
                             <argLine>
+                                ${commonArgLine}
                                 ${vmHeapSettings}
                                 ${javaModuleArgs}
-                                -Dhazelcast.phone.home.enabled=false
                                 -Dhazelcast.test.use.network=true
-                                -Dlog4j.skipJansi=true
                                 ${extraVmArgs}
                             </argLine>
                             <useManifestOnlyJar>false</useManifestOnlyJar>
@@ -944,6 +845,10 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration combine.self="override">
                             <properties>
+                                <!--
+                                    Registers for JUnit4 executions only
+                                    https://maven.apache.org/surefire/maven-surefire-plugin/examples/junit.html#using-custom-listeners-and-reporters
+                                -->
                                 <property>
                                     <name>listener</name>
                                     <value>com.hazelcast.test.compatibility.SamplingTestExecutionListener</value>
@@ -952,12 +857,11 @@
                             <trimStackTrace>false</trimStackTrace>
                             <runOrder>failedfirst</runOrder>
                             <argLine>
+                                ${commonArgLine}
                                 ${vmHeapSettings}
                                 ${javaModuleArgs}
-                                -Dhazelcast.phone.home.enabled=false
                                 -Dhazelcast.test.use.network=false
                                 -Dhazelcast.test.sample.serialized.objects=${target.dir}/serialized-objects-${project.version}-
-                                -Dlog4j.skipJansi=true
                                 ${extraVmArgs}
                             </argLine>
                             <includes>
@@ -1046,6 +950,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.vintage</groupId>
             <artifactId>junit-vintage-engine</artifactId>
             <scope>test</scope>
@@ -1096,10 +1005,6 @@
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-api</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-simple</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
 
@@ -1110,8 +1015,8 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-annotations</artifactId>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
@@ -1133,7 +1038,7 @@
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
-            <version>11.0.8</version>
+            <version>${tomcat10.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import com.hazelcast.config.Config;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.instance.impl.TestUtil;
 import com.hazelcast.test.HazelcastSerialClassRunner;
+import com.hazelcast.test.TestHazelcastInstanceFactory;
 import com.hazelcast.test.annotation.ParallelJVMTest;
 import com.hazelcast.test.annotation.QuickTest;
 import org.junit.Test;
@@ -27,12 +28,13 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 
 import javax.annotation.Nonnull;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doThrow;
 
 @RunWith(HazelcastSerialClassRunner.class)
 @Category({QuickTest.class, ParallelJVMTest.class})
@@ -40,9 +42,10 @@ public class DiagnosticsAutoOffTests extends AbstractDiagnosticsPluginTest {
 
     private HazelcastInstance hz;
     Diagnostics diagnostics;
+    TestHazelcastInstanceFactory factory = createHazelcastInstanceFactory();
 
     public void setup(Config config) {
-        hz = createHazelcastInstance(config);
+        hz = factory.newHazelcastInstance(config);
         diagnostics = TestUtil.getNode(hz).getNodeEngine().getDiagnostics();
         // shorten the auto-off timer for the test, won't work when statically enabled.
         diagnostics.autoOffDurationUnit = TimeUnit.SECONDS;
@@ -105,29 +108,39 @@ public class DiagnosticsAutoOffTests extends AbstractDiagnosticsPluginTest {
     }
 
     @Test
-    public void testAutoOff_doesNotFail() {
+    public void testAutoOff_doesNotFail() throws Exception {
         setup(new Config());
         // Capture logs
         StringBuilder sbLogs = captureLogs();
 
-        setDynamicConfig(new DiagnosticsConfig().setEnabled(false).setAutoOffDurationInMinutes(3));
+        setDynamicConfig(new DiagnosticsConfig().setEnabled(false));
+        Diagnostics mockDiagnostics = Mockito.spy(diagnostics);
 
-        var mockDiagnostics = Mockito.spy(diagnostics);
+        // Throw once only when disabling. All other calls are real.
+        CountDownLatch threwOnce = new CountDownLatch(1);
+        AtomicBoolean thrown = new AtomicBoolean(false);
+        Mockito.doAnswer(inv -> {
+            DiagnosticsConfig cfg = inv.getArgument(0);
+            if (!cfg.isEnabled() && thrown.compareAndSet(false, true)) {
+                threwOnce.countDown();
+                throw new RuntimeException("Test_SetConfig_Failed");
+            }
+            return inv.callRealMethod();
+        }).when(mockDiagnostics).setConfig(Mockito.any(DiagnosticsConfig.class));
 
-        // Arrange that the setConfig method throws an exception
-        assertAutoOffNotSet(mockDiagnostics);
-        mockDiagnostics.setConfig(new DiagnosticsConfig().setEnabled(true).setAutoOffDurationInMinutes(5));
-        doThrow(new RuntimeException("Test_SetConfig_Failed")).when(mockDiagnostics).setConfig(Mockito.any());
+        mockDiagnostics.setConfig(new DiagnosticsConfig().setEnabled(true).setAutoOffDurationInMinutes(3));
+
+        assertTrue("disable attempt never happened",
+                threwOnce.await(5, TimeUnit.SECONDS));
 
         assertTrueEventually(() -> {
             assertTrue(mockDiagnostics.isEnabled());
             assertFalse(mockDiagnostics.getAutoOffFuture().isDone());
             assertContains(sbLogs.toString(), "Test_SetConfig_Failed");
             assertContains(sbLogs.toString(), "Auto off failed to disable diagnostics.");
-        }, 15);
+        }, 10);
 
-        // When everything is ok, the auto off should work.
-        Mockito.reset(mockDiagnostics);
+        // Eventually we succeed and diagnostics is off
         assertDiagnosticsTurnedOffAutomatically(mockDiagnostics);
     }
 
@@ -171,6 +184,31 @@ public class DiagnosticsAutoOffTests extends AbstractDiagnosticsPluginTest {
         });
     }
 
+    @Test
+    public void testAfterAutoOff_newJoinerReceivesDisabledConfig() {
+        // After enabling diagnostics config along with auto-off, and diagnostics turned off automatically, if a
+        // new member joins, it should receive the config as disabled.
+        setup(new Config());
+
+        // Enable diagnostics with auto-off for 5 secs
+        setDynamicConfig(new DiagnosticsConfig().setEnabled(true).setAutoOffDurationInMinutes(5));
+        assertTrue(diagnostics.isEnabled());
+
+        // Auto off should disable diagnostics after 5 secs
+        assertTrueEventually(() -> {
+            assertFalse(diagnostics.isEnabled());
+            assertTrue(diagnostics.getAutoOffFuture() == null || diagnostics.getAutoOffFuture().isDone());
+        });
+
+        // Create a new member to join the cluster
+        HazelcastInstance newMember = factory.newHazelcastInstance(new Config());
+        assertAllInSafeState(factory.getAllHazelcastInstances());
+
+        // The new member should receive the diagnostics config as disabled
+        Diagnostics newMemberDiagnostics = TestUtil.getNode(newMember).getNodeEngine().getDiagnostics();
+        assertFalse(newMemberDiagnostics.isEnabled());
+    }
+
     private @Nonnull StringBuilder captureLogs() {
         StringBuilder sbLogs = new StringBuilder();
         hz.getLoggingService().addLogListener(Level.ALL, logEvent -> {
@@ -198,6 +236,7 @@ public class DiagnosticsAutoOffTests extends AbstractDiagnosticsPluginTest {
         assertTrueEventually(() -> {
             assertFalse(ds.isEnabled());
             assertTrue(ds.getAutoOffFuture() == null || ds.getAutoOffFuture().isDone());
+            assertGreaterOrEquals("AutoOff Metric", ds.getMetricCollector().getAutoOffDisabledCount().get(), 1);
         });
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -284,7 +284,7 @@ public class ByteArrayObjectDataOutput extends VersionedObjectDataOutput impleme
     }
 
     @Override
-    @Deprecated
+    @Deprecated(since = "4.2", forRemoval = true)
     public void writeUTF(final String str) throws IOException {
         writeString(str);
     }
@@ -390,7 +390,7 @@ public class ByteArrayObjectDataOutput extends VersionedObjectDataOutput impleme
     }
 
     @Override
-    @Deprecated
+    @Deprecated(since = "4.2", forRemoval = true)
     public void writeUTFArray(String[] strings) throws IOException {
        writeStringArray(strings);
     }

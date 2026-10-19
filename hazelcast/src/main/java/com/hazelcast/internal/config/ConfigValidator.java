@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ import com.hazelcast.config.ServerSocketEndpointConfig;
 import com.hazelcast.config.TieredStoreConfig;
 import com.hazelcast.config.WanBatchPublisherConfig;
 import com.hazelcast.config.WanReplicationConfig;
+import com.hazelcast.config.cp.CPMapConfig;
 import com.hazelcast.config.cp.CPSubsystemConfig;
 import com.hazelcast.config.security.JaasAuthenticationConfig;
 import com.hazelcast.config.security.RealmConfig;
@@ -723,6 +724,26 @@ public final class ConfigValidator {
 
         checkTrue(!config.isPersistenceEnabled() || config.getCPMemberCount() > 0,
                 "CP member count must be greater than 0 to use CP persistence feature!");
+        // enterprise checks
+
+        if (config.isAutoStepDownWhenLeader() && !getBuildInfo().isEnterprise()) {
+            throw new InvalidConfigurationException("Leader Auto Step Down is supported in Hazelcast Enterprise only."
+                    + " Make sure you have Hazelcast Enterprise JARs on your classpath!");
+        }
+
+        if (config.getCPMemberPriority() != 0 && !getBuildInfo().isEnterprise()) {
+            throw new InvalidConfigurationException("CP member priority is supported in Hazelcast Enterprise only."
+                    + " Make sure you have Hazelcast Enterprise JARs on your classpath!");
+        }
+        if (config.isPersistenceEnabled() && !getBuildInfo().isEnterprise()) {
+            throw new InvalidConfigurationException("CP Persistence is supported in Hazelcast Enterprise only."
+                    + " Make sure you have Hazelcast Enterprise JARs on your classpath!");
+        }
+        if (config.getCpMapConfigs().values().stream().anyMatch(CPMapConfig::isPurgeEnabled)
+                && !getBuildInfo().isEnterprise()) {
+            throw new InvalidConfigurationException("CPMap purge is supported in Hazelcast Enterprise only."
+                    + " Make sure you have Hazelcast Enterprise JARs on your classpath!");
+        }
     }
 
     /**

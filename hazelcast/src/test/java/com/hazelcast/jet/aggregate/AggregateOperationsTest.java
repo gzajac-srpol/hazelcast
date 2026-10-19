@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -434,7 +434,7 @@ public class AggregateOperationsTest {
     @Test
     public void when_mappingWithoutDeduct() {
         validateOpWithoutDeduct(
-                mapping(entryValue(), maxBy(naturalOrder())),
+                mapping(com.hazelcast.function.Functions.<Integer>entryValue(), maxBy(naturalOrder())),
                 identity(),
                 entry("a", 1),
                 entry("b", 2),

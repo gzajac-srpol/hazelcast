@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.List;
 
 import static classloading.ThreadLocalLeakTestUtils.checkThreadLocalsForLeaks;
 import static com.hazelcast.internal.util.RootCauseMatcher.rootCause;
+import static com.hazelcast.test.HazelcastTestSupport.assertTrueEventually;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -53,21 +54,21 @@ public abstract class AbstractJavaXCacheDependencyTest {
     public void createHazelcastInstance() throws Exception {
         createHazelcastInstance(false, false);
 
-        checkThreadLocalsForLeaks(CLASS_LOADER);
+        assertTrueEventually(() -> checkThreadLocalsForLeaks(CLASS_LOADER));
     }
 
     @Test
     public void createHazelcastInstance_getCacheManager() throws Exception {
         createHazelcastInstance(true, false);
 
-        checkThreadLocalsForLeaks(CLASS_LOADER);
+        assertTrueEventually(() -> checkThreadLocalsForLeaks(CLASS_LOADER));
     }
 
     @Test
     public void createHazelcastInstance_getCache() throws Exception {
         createHazelcastInstance(true, true);
 
-        checkThreadLocalsForLeaks(CLASS_LOADER);
+        assertTrueEventually(() -> checkThreadLocalsForLeaks(CLASS_LOADER));
     }
 
     protected abstract String getConfigClass();

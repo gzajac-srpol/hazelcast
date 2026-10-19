@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package com.hazelcast.jet.impl.deployment;
 
 import com.hazelcast.internal.nio.IOUtil;
 import com.hazelcast.jet.impl.util.ReflectionUtils;
-import com.hazelcast.jet.impl.util.Util;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.logging.Logger;
 
@@ -42,6 +41,7 @@ import java.util.function.Supplier;
 import java.util.zip.InflaterInputStream;
 
 import static com.hazelcast.internal.util.StringUtil.isNullOrEmpty;
+import static com.hazelcast.internal.util.Memoizers.memoizeConcurrent;
 import static com.hazelcast.jet.impl.JobRepository.classKeyName;
 import static com.hazelcast.jet.impl.JobRepository.fileKeyName;
 import static com.hazelcast.jet.impl.util.ReflectionUtils.toClassResourceId;
@@ -92,7 +92,7 @@ public class MapResourceClassLoader extends JetDelegatingClassLoader {
                            boolean childFirst) {
         super(parent);
         this.userCodeNamespace = null;
-        this.resourcesSupplier = Util.memoizeConcurrent(resourcesSupplier);
+        this.resourcesSupplier = memoizeConcurrent(resourcesSupplier);
         this.childFirst = childFirst;
     }
 
@@ -102,7 +102,7 @@ public class MapResourceClassLoader extends JetDelegatingClassLoader {
                                   boolean childFirst) {
         super("ucd-namespace", parent);
         this.userCodeNamespace = userCodeNamespace;
-        this.resourcesSupplier = Util.memoizeConcurrent(resourcesSupplier);
+        this.resourcesSupplier = memoizeConcurrent(resourcesSupplier);
         this.childFirst = childFirst;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -220,6 +220,7 @@ public abstract class AbstractClientConfigBuilderTest extends HazelcastTestSuppo
         assertEquals(10000, nearCacheConfig.getTimeToLiveSeconds());
         assertEquals(5000, nearCacheConfig.getMaxIdleSeconds());
         assertFalse(nearCacheConfig.isInvalidateOnChange());
+        assertFalse(nearCacheConfig.isSerializeKeys());
         assertEquals(InMemoryFormat.OBJECT, nearCacheConfig.getInMemoryFormat());
         assertFalse(nearCacheConfig.isCacheLocalEntries());
 
@@ -556,6 +557,12 @@ public abstract class AbstractClientConfigBuilderTest extends HazelcastTestSuppo
 
     @Test
     public abstract void testCompactSerialization_withInvalidCompactSerializableClass();
+
+    @Test
+    public abstract void testCompactSerialization_zeroConfigRestrictions();
+
+    @Test
+    public abstract void testCompactSerialization_zeroConfigDefaultsDisabled();
 
     @Test
     public abstract void testDefaultRoutingStrategyIsPicked_whenNoRoutingStrategyIsSetToMultiMemberRoutingConfig();

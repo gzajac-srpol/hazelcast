@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -233,6 +234,8 @@ public class DiagnosticsDynamicTests extends AbstractDiagnosticsPluginTest {
         assertStoreLatencyPlugin();
         assertSystemLogPlugin(true);
         assertSystemPropertiesPlugin(true);
+        assertGreaterOrEquals("Diagnostics dynamically enabled count",
+                diagnostics.getMetricCollector().getDynamicallyEnabledCount().get(), 1);
 
         // The service will be enabled, but the plugins will not
         disablePlugins();
@@ -396,9 +399,10 @@ public class DiagnosticsDynamicTests extends AbstractDiagnosticsPluginTest {
 
         assertTrueEventually(() -> {
             assertEquals(tmpFolder.getRoot().getAbsolutePath(), diagnostics.getLoggingDirectory().getAbsolutePath());
-            assertTrue(tmpFolder.getRoot().listFiles().length > 0);
-            assertStartsWith(diagnostics.getBaseFileNameWithTime(), tmpFolder.getRoot().listFiles()[0].getName());
-            assertGreaterOrEquals("log file size", tmpFolder.getRoot().listFiles()[0].length(), 1);
+            File[] logFiles = tmpFolder.getRoot().listFiles();
+            assertTrue(logFiles != null && logFiles.length > 0);
+            assertStartsWith(diagnostics.getBaseFileNameWithTime(), logFiles[0].getName());
+            assertGreaterOrEquals("log file size", logFiles[0].length(), 1);
         });
     }
 

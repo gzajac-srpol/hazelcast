@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -721,10 +721,10 @@ public class Edge implements IdentifiedDataSerializable {
          * parallelism (LP) of the upstream vs. the downstream vertices.
          * Specifically:
          * <ul><li>
-         *     If LP_upstream <= LP_downstream, every downstream processor receives
+         *     If LP_upstream &lt;= LP_downstream, every downstream processor receives
          *     data from only one upstream processor
          * </li><li>
-         *     If LP_upstream >= LP_downstream, every upstream processor sends data to
+         *     If LP_upstream &gt;= LP_downstream, every upstream processor sends data to
          *     only one downstream processor
          * </li></ul>
          * If LP_upstream = LP_downstream, both of the above are true and there are

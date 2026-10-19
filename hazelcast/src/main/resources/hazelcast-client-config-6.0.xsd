@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+  ~ Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -673,6 +673,7 @@
                     <xs:all>
                         <xs:element name="serializers" type="compact-serializers" minOccurs="0"/>
                         <xs:element name="classes" type="compact-serializable-classes" minOccurs="0"/>
+                        <xs:element name="zero-config-filter" type="java-serialization-filter" minOccurs="0"/>
                     </xs:all>
                 </xs:complexType>
             </xs:element>
@@ -813,7 +814,16 @@
 
     <xs:complexType name="native-memory">
         <xs:all>
-            <xs:element name="size" type="capacity" minOccurs="0"/>
+            <xs:element name="size" type="capacity" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Deprecated, use 'capacity' instead. If 'capacity' and 'size' are both defined, the last config in the xml overrides the previous setting. E.g. if you have a setting like:
+                        <capacity unit="GIGABYTES" value="50"/>
+                        <size unit="GIGABYTES" value="20"/>
+                        then, the last config value of 20GB will be effective.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
             <xs:element name="capacity" type="capacity" minOccurs="0"/>
             <xs:element name="min-block-size" type="xs:positiveInteger" minOccurs="0"/>
             <xs:element name="page-size" type="xs:positiveInteger" minOccurs="0"/>

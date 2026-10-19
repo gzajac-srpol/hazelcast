@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package com.hazelcast.internal.util.collection;
 
 import com.hazelcast.internal.serialization.SerializableByConvention;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -192,7 +191,7 @@ public class InflatableSet<T> extends AbstractSet<T> implements Set<T>, Serializ
      * @return a shallow copy of this set
      */
     @Override
-    @SuppressFBWarnings(value = "CN_IDIOM", justification = "Deliberate, documented contract violation")
+    //@SuppressFBWarnings(value = "CN_IDIOM", justification = "Deliberate, documented contract violation")
     @SuppressWarnings({"checkstyle:superclone", "CloneDoesntCallSuperClone"})
     protected Object clone() {
         return new InflatableSet<>(this);

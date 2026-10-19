@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -101,13 +101,14 @@ import static com.hazelcast.jet.config.JobConfigArguments.KEY_JOB_IS_SUSPENDABLE
 import static com.hazelcast.jet.core.Edge.between;
 import static com.hazelcast.jet.core.processor.SinkProcessors.writeMapP;
 import static com.hazelcast.jet.core.processor.SourceProcessors.readMapP;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.rethrow;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.rethrow;
 import static com.hazelcast.jet.impl.util.ImdgUtil.asClientConfig;
 import static java.lang.Math.abs;
 import static java.lang.String.format;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 
@@ -151,14 +152,6 @@ public final class Util {
     public static boolean isJobSuspendable(JobConfig jobConfig) {
         Boolean argument = jobConfig.getArgument(KEY_JOB_IS_SUSPENDABLE);
         return argument == null || argument;
-    }
-
-    public static <T> Supplier<T> memoize(Supplier<T> onceSupplier) {
-        return new MemoizingSupplier<>(onceSupplier);
-    }
-
-    public static <T> Supplier<T> memoizeConcurrent(Supplier<T> onceSupplier) {
-        return new ConcurrentMemoizingSupplier<>(onceSupplier);
     }
 
     public static <T> T uncheckCall(@Nonnull Callable<T> callable) {
@@ -488,7 +481,7 @@ public final class Util {
      * if only one thread is updating the value.
      */
     public static void lazyAdd(AtomicLongArray counters, int index, long addend) {
-        counters.lazySet(index, counters.get(index) + addend);
+        counters.lazySet(index, counters.getPlain(index) + addend);
     }
 
     /**
@@ -790,6 +783,15 @@ public final class Util {
 
     public static NodeEngineImpl getNodeEngine(HazelcastInstance instance) {
         return getHazelcastInstanceImpl(instance).node.nodeEngine;
+    }
+
+    /**
+     * Gets {@link JetServiceBackend} for given instance. Throws if Jet is not enabled.
+     */
+    @Nonnull
+    public static JetServiceBackend getJetServiceBackend(@Nonnull HazelcastInstance instance) {
+        return requireNonNull(getHazelcastInstanceImpl(instance).node.getNodeExtension().getJetServiceBackend(),
+                "Jet is not enabled");
     }
 
     public static HazelcastInstanceImpl getHazelcastInstanceImpl(HazelcastInstance instance) {

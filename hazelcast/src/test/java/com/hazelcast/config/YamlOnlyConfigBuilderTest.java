@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -121,17 +121,19 @@ public class YamlOnlyConfigBuilderTest {
                     maps:
                       map1:
                         max-size-mb: 50
+                        purge-enabled: true
                       map2:
-                        max-size-mb: 25""";
+                        max-size-mb: 25
+                        purge-enabled: false""";
         Config config = buildConfig(yaml);
         assertNotNull(config);
         CPSubsystemConfig cpSubsystemConfig = config.getCPSubsystemConfig();
         assertEquals(2, cpSubsystemConfig.getCpMapConfigs().size());
-        CPMapConfig map1Expected = new CPMapConfig("map1", 50);
+        CPMapConfig map1Expected = new CPMapConfig("map1", 50).setPurgeEnabled(true);
         CPMapConfig map1Actual = cpSubsystemConfig.findCPMapConfig(map1Expected.getName());
         assertNotNull(map1Actual);
         assertEquals(map1Expected, map1Actual);
-        CPMapConfig map2Expected = new CPMapConfig("map2", 25);
+        CPMapConfig map2Expected = new CPMapConfig("map2", 25).setPurgeEnabled(false);
         CPMapConfig map2Actual = cpSubsystemConfig.findCPMapConfig(map2Expected.getName());
         assertNotNull(map2Actual);
         assertEquals(map2Expected, map2Actual);

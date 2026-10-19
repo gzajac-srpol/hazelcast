@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ import com.hazelcast.jet.impl.operation.GetJobIdsOperation.GetJobIdsResult;
 import com.hazelcast.jet.impl.submitjob.clientside.execute.JobExecuteCall;
 import com.hazelcast.jet.impl.submitjob.clientside.upload.JobUploadCall;
 import com.hazelcast.jet.impl.submitjob.clientside.validator.SubmitJobParametersValidator;
-import com.hazelcast.jet.impl.util.ExceptionUtil;
+import com.hazelcast.jet.impl.util.JetExceptionUtil;
 import com.hazelcast.jet.pipeline.Pipeline;
 import com.hazelcast.logging.ILogger;
 
@@ -58,7 +58,7 @@ import java.util.function.Function;
 
 import static com.hazelcast.internal.util.ExceptionUtil.sneakyThrow;
 import static com.hazelcast.jet.impl.operation.GetJobIdsOperation.ALL_JOBS;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.rethrow;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.rethrow;
 
 /**
  * Client-side {@code JetInstance} implementation
@@ -73,7 +73,7 @@ public class JetClientInstanceImpl extends AbstractJetInstance<UUID> {
         this.client = hazelcastInstance;
         this.serializationService = client.getSerializationService();
 
-        ExceptionUtil.registerJetExceptions(hazelcastInstance.getClientExceptionFactory());
+        JetExceptionUtil.registerJetExceptions(hazelcastInstance.getClientExceptionFactory());
     }
 
     @Override
@@ -81,14 +81,32 @@ public class JetClientInstanceImpl extends AbstractJetInstance<UUID> {
         return client.getClientClusterService().getMasterMember().getUuid();
     }
 
-    @Override
-    public Map<UUID, GetJobIdsResult> getJobsInt(String onlyName, Long onlyJobId) {
+    private Map<UUID, GetJobIdsResult> getJobsInt(String onlyName, Long onlyJobId) {
         return invokeRequestOnAnyMemberAndDecodeResponse(
                 JetGetJobIdsCodec.encodeRequest(onlyName, onlyJobId == null ? ALL_JOBS : onlyJobId),
                 resp -> {
                     Data responseSerialized = JetGetJobIdsCodec.decodeResponse(resp).response;
                     return serializationService.toObject(responseSerialized);
                 });
+    }
+
+    @Override
+    protected GetJobIdsResult getJobByName(String onlyName) {
+        var result = getJobsInt(onlyName, null);
+        // Only normal jobs can have a name.
+        // Since information about normal jobs is requested from the master node only, a single result is expected.
+        assert result.size() == 1 : "Exactly one result is expected";
+        return result.values().stream().findFirst().orElseThrow();
+    }
+
+    @Override
+    protected Map<UUID, GetJobIdsResult> getJobsById(Long onlyJobId) {
+        return getJobsInt(null, onlyJobId);
+    }
+
+    @Override
+    protected Map<UUID, GetJobIdsResult> getAllJobs() {
+        return getJobsInt(null, null);
     }
 
     @Nonnull
@@ -99,10 +117,10 @@ public class JetClientInstanceImpl extends AbstractJetInstance<UUID> {
 
     /**
      * Returns a list of jobs and a summary of their details.
-     * @deprecated Since 5.3, to be removed in 6.0. Use {@link #getJobAndSqlSummaryList()} instead
+     * @deprecated to be removed in 6.0. Use {@link #getJobAndSqlSummaryList()} instead
      */
     @Nonnull
-    @Deprecated
+    @Deprecated(since = "5.3", forRemoval = true)
     public List<JobSummary> getJobSummaryList() {
         return invokeRequestOnMasterAndDecodeResponse(JetGetJobSummaryListCodec.encodeRequest(),
                 JetGetJobSummaryListCodec::decodeResponse);

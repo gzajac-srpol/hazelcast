@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import com.hazelcast.instance.BuildInfo;
 import com.hazelcast.internal.util.ConstructorFunction;
 import com.hazelcast.logging.AbstractLogger;
 import com.hazelcast.logging.ILogger;
-import com.hazelcast.logging.LogEvent;
 import com.hazelcast.logging.LogListener;
 import com.hazelcast.logging.Logger;
 import com.hazelcast.logging.LoggerFactory;
@@ -115,11 +114,6 @@ public class ClientLoggingService implements LoggingService {
                 String logMessage = detailsEnabled ? versionMessage + message : message;
                 logger.log(level, logMessage, thrown);
             }
-        }
-
-        @Override
-        public void log(LogEvent logEvent) {
-            // unused
         }
 
         @Override

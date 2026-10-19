@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -283,11 +283,6 @@ public final class MPSCQueue<E> extends AbstractQueue<E> implements BlockingQueu
         Node h = putStack.get();
         int putStackSize = h == null ? 0 : h.size;
         return putStackSize + takeStackSize.get();
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return size() == 0;
     }
 
     @Override

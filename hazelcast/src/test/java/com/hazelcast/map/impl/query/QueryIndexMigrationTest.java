@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ import static org.junit.Assert.assertTrue;
 @Category({SlowTest.class, ParallelJVMTest.class})
 public class QueryIndexMigrationTest extends HazelcastTestSupport {
 
-    private final Random random = new Random();
+    private Random random = new Random();
 
     private TestHazelcastInstanceFactory nodeFactory;
     private ExecutorService executor;

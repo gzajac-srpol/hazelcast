@@ -1,6 +1,6 @@
 /*
  * Original work Copyright 2015 Real Logic Ltd.
- * Modified work Copyright (c) 2015-2025, Hazelcast, Inc. All Rights Reserved.
+ * Modified work Copyright (c) 2015-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@
 package com.hazelcast.internal.util.collection;
 
 import java.lang.reflect.Array;
+import java.util.AbstractSet;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
@@ -32,7 +32,7 @@ import static com.hazelcast.internal.util.collection.Hashing.longHash;
  * Simple fixed-size long hashset.
  */
 @SuppressWarnings("checkstyle:methodcount")
-public final class LongHashSet implements Set<Long> {
+public final class LongHashSet extends AbstractSet<Long> {
     /** Maximum supported capacity */
     @SuppressWarnings("checkstyle:magicnumber")
     public static final int MAX_CAPACITY = 1 << 29;
@@ -161,9 +161,6 @@ public final class LongHashSet implements Set<Long> {
         return value instanceof Long l && contains(l.longValue());
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public boolean contains(final long value) {
         int index = longHash(value, mask);
 
@@ -184,14 +181,6 @@ public final class LongHashSet implements Set<Long> {
     @Override
     public int size() {
         return size;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isEmpty() {
-        return size() == 0;
     }
 
     /**
@@ -309,9 +298,6 @@ public final class LongHashSet implements Set<Long> {
         return iterator;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public void copy(final LongHashSet obj) {
         // NB: mask also implies the length is the same
         if (this.mask != obj.mask) {

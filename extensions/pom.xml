@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2025 Hazelcast Inc.
+  ~ Copyright 2026 Hazelcast Inc.
   ~
   ~ Licensed under the Hazelcast Community License (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -35,10 +35,10 @@
 
     <modules>
         <module>avro</module>
-        <module>cdc-debezium</module>
-        <module>cdc-mysql</module>
-        <module>cdc-postgres</module>
         <module>csv</module>
+        <module>cdc-debezium</module>
+        <module>cdc-postgres</module>
+        <module>cdc-mysql</module>
         <module>elasticsearch/elasticsearch-7</module>
         <module>hadoop</module>
         <module>hadoop-dist</module>
@@ -47,6 +47,7 @@
         <module>kinesis</module>
         <module>mapstore</module>
         <module>mongodb</module>
+        <module>pulsar</module>
         <module>s3</module>
     </modules>
 
@@ -68,17 +69,19 @@
 
     <properties>
         <argLine> <!-- surefire parameters -->
+            ${commonArgLine}
+            ${vmHeapSettings}
+            ${javaModuleArgs}
             -Xmx1G
             -Xms1G
             -XX:+AlwaysPreTouch
-            -Dhazelcast.phone.home.enabled=false
-            -Dhazelcast.logging.type=log4j2
             -Dhazelcast.logging.details.enabled=true
             -Dhazelcast.test.use.network=false
-            -Djava.net.preferIPv4Stack=true
             -XX:+HeapDumpOnOutOfMemoryError
             -XX:HeapDumpPath=${project.build.directory}
+            ${extraVmArgs}
         </argLine>
+        <dependenciesToScan>${project.parent.groupId}:hazelcast-archunit-rules</dependenciesToScan>
 
         <!-- needed for CheckStyle -->
         <main.basedir>${project.parent.basedir}</main.basedir>
@@ -163,8 +166,11 @@
                                 implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
                             <transformer
                                 implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                            <transformer
-                                implementation="com.hazelcast.buildutils.HazelcastManifestTransformer"/>
+                            <transformer implementation="com.hazelcast.buildutils.HazelcastManifestTransformer">
+                                <manifestEntries>
+                                    <Multi-Release>true</Multi-Release>
+                                </manifestEntries>
+                            </transformer>
                         </transformers>
                         <filters>
                             <filter>
@@ -188,5 +194,16 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+
+        <plugins>
+            <!-- needed to take argLine into consideration and avoid picking log4j2.yml from Kafka -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>${argLine}</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 </project>

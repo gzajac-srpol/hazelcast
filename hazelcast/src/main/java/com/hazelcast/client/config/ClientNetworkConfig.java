@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -154,10 +154,10 @@ public class ClientNetworkConfig {
     /**
      * See {@link com.hazelcast.client.config.ClientNetworkConfig#setSmartRouting(boolean)}  for details
      *
-     * @deprecated since 5.5, this option is superseded by {@link ClusterRoutingConfig#getRoutingMode()}
+     * @deprecated this option is superseded by {@link ClusterRoutingConfig#getRoutingMode()}
      * @return true if client is smart
      */
-    @Deprecated(since = "5.5")
+    @Deprecated(since = "5.5", forRemoval = true)
     public boolean isSmartRouting() {
         return clusterRoutingConfig.getRoutingMode() == RoutingMode.ALL_MEMBERS;
     }
@@ -173,11 +173,11 @@ public class ClientNetworkConfig {
      * <p>
      * Default value is {@code true}.
      *
-     * @deprecated since 5.5, this option is superseded by {@link ClusterRoutingConfig#setRoutingMode(RoutingMode)}}.
+     * @deprecated this option is superseded by {@link ClusterRoutingConfig#setRoutingMode(RoutingMode)}}.
      * @param smartRouting true if smart routing should be enabled.
      * @return configured {@link com.hazelcast.client.config.ClientNetworkConfig} for chaining
      */
-    @Deprecated(since = "5.5")
+    @Deprecated(since = "5.5", forRemoval = true)
     public ClientNetworkConfig setSmartRouting(boolean smartRouting) {
         clusterRoutingConfig.setRoutingMode(smartRouting ? RoutingMode.ALL_MEMBERS : RoutingMode.SINGLE_MEMBER);
         return this;

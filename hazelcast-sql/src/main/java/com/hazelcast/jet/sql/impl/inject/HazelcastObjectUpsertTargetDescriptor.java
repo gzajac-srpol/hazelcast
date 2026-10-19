@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,8 @@ public class HazelcastObjectUpsertTargetDescriptor implements UpsertTargetDescri
 
     @Override
     public UpsertTarget create(final ExpressionEvalContext evalContext) {
-        return new HazelcastObjectUpsertTarget();
+        var classFilter = evalContext.getNodeEngine().getSqlService().getReflectionClassNameFilter();
+        return new HazelcastObjectUpsertTarget(classFilter);
     }
 
     @Override

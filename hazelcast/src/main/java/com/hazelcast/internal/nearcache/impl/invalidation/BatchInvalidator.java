@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,6 +112,10 @@ public class BatchInvalidator extends Invalidator {
             invalidationQueue.release();
         }
 
+        // Sending the invalidations after releasing the lock is a trade-off between queue inflation
+        // and delivery ordering. We accept a higher likelihood that invalidations will arrive out of
+        // order to the listener in exchange for lower latency on draining the queue when it exceeds
+        // the batch size.
         sendInvalidations(dataStructureName, invalidations);
     }
 

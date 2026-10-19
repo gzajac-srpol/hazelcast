@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.hazelcast.jet.impl.connector;
 
 import com.hazelcast.function.FunctionEx;
 import com.hazelcast.jet.core.ProcessorSupplier;
+import com.hazelcast.jet.impl.util.IOUtil;
 import com.hazelcast.security.impl.function.SecuredFunctions;
 import com.hazelcast.jet.RestartableException;
 import com.hazelcast.jet.config.ProcessingGuarantee;
@@ -34,7 +35,6 @@ import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
 import com.hazelcast.security.permission.ConnectorPermission;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -128,6 +128,8 @@ public final class WriteFileP<T> implements Processor {
         this.context = context;
         Files.createDirectories(directory);
 
+        throwIfDateFormatterNotValid();
+
         ProcessingGuarantee guarantee = context.processingGuarantee() == EXACTLY_ONCE && !exactlyOnce
                 ? AT_LEAST_ONCE
                 : context.processingGuarantee();
@@ -214,9 +216,21 @@ public final class WriteFileP<T> implements Processor {
         utility.restoreFromSnapshot(inbox);
     }
 
+    private void throwIfDateFormatterNotValid() {
+        if (dateFormatter != null) {
+            try {
+                // ensure dateFormatter doesn't escape from directory.
+                IOUtil.resolveInDir(directory, currentTimeFormatted() + "-0");
+            } catch (IOException e) {
+                sneakyThrow(e);
+            }
+        }
+    }
+
     private FileId newFileName() {
         StringBuilder sb = new StringBuilder();
         if (dateFormatter != null) {
+            throwIfDateFormatterNotValid();
             lastFileDate = currentTimeFormatted();
             sb.append(lastFileDate);
             sb.append('-');
@@ -339,8 +353,8 @@ public final class WriteFileP<T> implements Processor {
         final Path targetFile;
         Writer writer;
 
-        @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-                justification = "targetFile always has fileName")
+//        @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+//                justification = "targetFile always has fileName")
         FileResource(FileId fileId) {
             this.fileId = fileId;
             this.targetFile = directory.resolve(fileId.fileName);

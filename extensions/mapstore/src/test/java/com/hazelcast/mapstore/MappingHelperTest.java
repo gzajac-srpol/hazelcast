@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,21 +20,21 @@ import com.hazelcast.sql.SqlColumnMetadata;
 import com.hazelcast.sql.SqlColumnType;
 import com.hazelcast.sql.SqlService;
 import com.hazelcast.test.annotation.QuickTest;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
-@RunWith(MockitoJUnitRunner.class)
-@Category(QuickTest.class)
+@QuickTest
+@ExtendWith(MockitoExtension.class)
+@SuppressWarnings("resource")
 public class MappingHelperTest {
 
     // SqlService#execute returns closeable SqlResult, RETURNS_DEEP_STUBS prevents NPE
@@ -43,7 +43,7 @@ public class MappingHelperTest {
 
     private MappingHelper mappingHelper;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mappingHelper = new MappingHelper(sqlService);
     }

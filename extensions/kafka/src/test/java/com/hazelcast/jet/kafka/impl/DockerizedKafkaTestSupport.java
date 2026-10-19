@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,38 +16,81 @@
 
 package com.hazelcast.jet.kafka.impl;
 
-import com.hazelcast.jet.impl.util.ReflectionUtils;
+import com.hazelcast.internal.util.concurrent.ConcurrentMemoizingSupplier;
+import com.hazelcast.test.starter.MavenInterface;
+import org.jspecify.annotations.NonNull;
+import org.apache.maven.artifact.versioning.ComparableVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import java.io.IOException;
-import java.util.Objects;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static com.hazelcast.internal.util.Memoizers.memoizeConcurrent;
 
 class DockerizedKafkaTestSupport extends KafkaTestSupport {
-    // TODO This should lookup "confluent.version" Maven property
-    private static final String TEST_KAFKA_VERSION = System.getProperty("test.kafka.version", "7.9.1");
+    private static final ConcurrentMemoizingSupplier<String> MAVEN_CONFLUENT_VERSION
+        = memoizeConcurrent(() -> MavenInterface.evaluateExpression("confluent.version"));
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerizedKafkaTestSupport.class);
-
-    private KafkaContainer kafkaContainer;
+    private GenericContainer<?> kafkaContainer;
 
     @Override
-    protected String createKafkaCluster0() throws IOException {
-        String kafkaContainerStarterScript = (String) Objects
-                .requireNonNull(ReflectionUtils.readStaticFieldOrNull(KafkaContainer.class.getName(), "STARTER_SCRIPT"));
-
-        kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka").withTag(TEST_KAFKA_VERSION))
+    protected String createKafkaCluster0(Map<String, String> properties) {
+        String kafkaVersion = System.getProperty("test.kafka.version");
+        if (kafkaVersion == null) {
+            kafkaVersion = MAVEN_CONFLUENT_VERSION.get();
+        }
+        DockerImageName imageName = DockerImageName.parse("confluentinc/cp-kafka").withTag(kafkaVersion);
+        if (new ComparableVersion(kafkaVersion).compareTo(new ComparableVersion("7.4.0")) < 0) {
+            // intentionally we want to test with old Kafka and Zookeeper
+            //noinspection deprecation
+            KafkaContainer legacyKafkaContainer = new KafkaContainer(imageName)
                 .withEmbeddedZookeeper()
+                .withEnv(toKafkaEnvironments(properties))
                 .withLogConsumer(new Slf4jLogConsumer(LOGGER))
-                // Workaround for https://github.com/testcontainers/testcontainers-java/issues/3288
-                // It adds 0.5s sleep before running the script copied from the host to the container.
-                .withCommand("-c",
-                    "while [ ! -f %1$s ]; do sleep 0.1; done; sleep 0.5; %1$s".formatted(kafkaContainerStarterScript));
-        kafkaContainer.start();
+                .withNetwork(network)
+                .withNetworkAliases("kafka")
+                .withListener(() -> "kafka:19092");
+            kafkaContainer = legacyKafkaContainer;
+            kafkaContainer.start();
+            return legacyKafkaContainer.getBootstrapServers();
+        }
 
-        return kafkaContainer.getBootstrapServers();
+        ConfluentKafkaContainer confluentKafkaContainer = new ConfluentKafkaContainer(imageName)
+            .withEnv(toKafkaEnvironments(properties))
+            .withLogConsumer(new Slf4jLogConsumer(LOGGER))
+            .withNetwork(network)
+            .withNetworkAliases("kafka")
+            .withListener("kafka:19092");
+        kafkaContainer = confluentKafkaContainer;
+        kafkaContainer.start();
+        return confluentKafkaContainer.getBootstrapServers();
+    }
+
+    static @NonNull String getKafkaVersion() {
+        String kafkaVersion = System.getProperty("test.kafka.version");
+        if (kafkaVersion == null) {
+            kafkaVersion = MAVEN_CONFLUENT_VERSION.get();
+        }
+        return kafkaVersion;
+    }
+
+    private String toKafkaEnvironment(String property) {
+        return "KAFKA_" + property.toUpperCase(Locale.ROOT).replace('.', '_');
+    }
+
+    private Map<String, String> toKafkaEnvironments(Map<String, String> properties) {
+        return properties
+            .entrySet()
+            .stream()
+            .map(entry -> Map.entry(toKafkaEnvironment(entry.getKey()), entry.getValue()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     @Override

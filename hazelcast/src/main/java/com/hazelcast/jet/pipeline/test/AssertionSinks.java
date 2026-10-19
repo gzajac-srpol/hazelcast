@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 import static com.hazelcast.jet.core.test.JetAssert.assertEquals;
 import static com.hazelcast.jet.core.test.JetAssert.assertTrue;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.rethrow;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.rethrow;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
@@ -153,7 +153,7 @@ public final class AssertionSinks {
      * complete the job before the other ones succeeded.
      * <p>
      * The assertion can be validated as follows:
-     * <pre>{@code
+     * <pre>
      * try {
      *     jetInstance.newJob(p).join();
      *     Assert.fail("Job should have completed with an AssertionCompletedException, " +

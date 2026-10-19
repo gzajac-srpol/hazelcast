@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import com.hazelcast.jet.JetException;
 import com.hazelcast.nio.serialization.HazelcastSerializationException;
 import com.hazelcast.nio.serialization.Serializer;
 import com.hazelcast.partition.PartitioningStrategy;
+import com.hazelcast.spi.properties.HazelcastProperties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -199,6 +200,11 @@ public class DelegatingSerializationService extends AbstractSerializationService
         for (SerializerAdapter serializer : serializersByClass.values()) {
             serializer.destroy();
         }
+    }
+
+    @Override
+    public HazelcastProperties getHazelcastProperties() {
+        return delegate.getHazelcastProperties();
     }
 
     public static InternalSerializationService from(

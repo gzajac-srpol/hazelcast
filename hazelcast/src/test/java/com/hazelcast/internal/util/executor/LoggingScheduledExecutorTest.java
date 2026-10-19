@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package com.hazelcast.internal.util.executor;
 
 import com.hazelcast.logging.AbstractLogger;
-import com.hazelcast.logging.LogEvent;
 import com.hazelcast.test.HazelcastParallelClassRunner;
 import com.hazelcast.test.HazelcastTestSupport;
 import com.hazelcast.test.annotation.ParallelJVMTest;
@@ -45,7 +44,7 @@ import static com.hazelcast.internal.util.RootCauseMatcher.rootCause;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.SEVERE;
-import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertTrue;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -232,11 +231,6 @@ public class LoggingScheduledExecutorTest extends HazelcastTestSupport {
             throwableHolder.set(thrown);
             messageHolder.set(message);
             logLevelHolder.set(level);
-        }
-
-        @Override
-        public void log(LogEvent logEvent) {
-            throw new UnsupportedOperationException();
         }
 
         @Override

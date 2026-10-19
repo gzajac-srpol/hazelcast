@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package com.hazelcast.config;
 
-import com.hazelcast.core.Hazelcast;
 import com.hazelcast.test.HazelcastParallelClassRunner;
 import com.hazelcast.test.HazelcastTestSupport;
 import com.hazelcast.test.annotation.ParallelJVMTest;
@@ -76,7 +75,7 @@ public class SqlConfigTest extends HazelcastTestSupport {
         final Config config = new Config();
         config.getSqlConfig().setCatalogPersistenceEnabled(true);
 
-        assertThatThrownBy(() -> Hazelcast.newHazelcastInstance(config))
+        assertThatThrownBy(() -> createHazelcastInstance(config))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("SQL Catalog Persistence requires Hazelcast Enterprise Edition");
     }

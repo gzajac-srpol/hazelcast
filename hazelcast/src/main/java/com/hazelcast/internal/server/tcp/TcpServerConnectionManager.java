@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -160,13 +160,9 @@ public class TcpServerConnectionManager extends TcpServerConnectionManagerBase
                 return connector.asyncConnect(address, silent, plane.index);
             });
             if (isNotYetInProgress.get()) {
-                if (logger.isFineEnabled()) {
-                    logger.fine("Connection to: %s streamId:%s is not yet in progress", address, streamId);
-                }
+                logger.fine("Connection to: %s streamId:%s is not yet in progress", address, streamId);
             } else {
-                if (logger.isFineEnabled()) {
-                    logger.fine("Connection to: %s streamId:%s is already in progress", address, streamId);
-                }
+                logger.finest("Connection to: %s streamId:%s is already in progress", address, streamId);
             }
         }
         return connection;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ public final class PartitionReplicaSyncRequestOffloadable
 
     public PartitionReplicaSyncRequestOffloadable(Collection<ServiceNamespace> namespaces,
                                                   int partitionId, int replicaIndex) {
-        this.namespaces = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        this.namespaces = ConcurrentHashMap.newKeySet();
         this.namespaces.addAll(namespaces);
         this.partitionId = partitionId;
         setPartitionId(-1);
@@ -271,7 +271,7 @@ public final class PartitionReplicaSyncRequestOffloadable
 
     @Override
     protected void readInternal(ObjectDataInput in) throws IOException {
-        namespaces = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        namespaces = ConcurrentHashMap.newKeySet();
         namespaces.addAll(readCollection(in));
         partitionId = in.readInt();
     }

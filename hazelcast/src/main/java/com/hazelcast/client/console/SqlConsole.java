@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,7 +57,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static com.hazelcast.client.console.HazelcastCommandLine.getHazelcastClientInstanceImpl;
 import static com.hazelcast.internal.util.StringUtil.equalsIgnoreCase;
 import static com.hazelcast.internal.util.StringUtil.lowerCaseInternal;
-import static com.hazelcast.internal.util.StringUtil.trim;
 
 @SuppressWarnings({
         "checkstyle:CyclomaticComplexity",
@@ -566,7 +565,7 @@ public final class SqlConsole {
                 }
             }
 
-            if (Constants.COMMAND_SET.contains(lowerCaseInternal(trim(line)))) {
+            if (Constants.COMMAND_SET.contains(lowerCaseInternal(line.strip()))) {
                 return;
             }
             // These EOFError exceptions are captured in LineReader's

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import com.hazelcast.jet.pipeline.file.LinesTextFileFormat;
 import com.hazelcast.jet.pipeline.file.ParquetFileFormat;
 import com.hazelcast.jet.pipeline.file.RawBytesFileFormat;
 import com.hazelcast.jet.pipeline.file.TextFileFormat;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.annotation.Nonnull;
 import java.io.BufferedReader;
@@ -86,7 +85,6 @@ public class LocalFileSourceFactory implements FileSourceFactory {
                 fsc.isIgnoreFileNotFound(), mapFn);
     }
 
-    @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
     private abstract static class AbstractReadFileFnProvider implements ReadFileFnProvider {
 
         @Nonnull @Override

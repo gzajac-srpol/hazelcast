@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import org.testcontainers.redpanda.RedpandaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.groupingBy;
@@ -37,10 +38,17 @@ class DockerizedRedPandaTestSupport extends KafkaTestSupport {
     private RedpandaContainer redpandaContainer;
 
     @Override
-    protected String createKafkaCluster0() {
+    protected String createKafkaCluster0(Map<String, String> properties) {
+        if (!properties.isEmpty()) {
+            LOGGER.warn("RedPanda container does not support configuration properties, but the following were provided: {}. They will be ignored.",
+                    properties);
+        }
         DockerImageName imageName = parse("docker.redpanda.com/redpandadata/redpanda:" + TEST_REDPANDA_VERSION);
         redpandaContainer = new RedpandaContainer(imageName)
-                .withLogConsumer(new Slf4jLogConsumer(LOGGER));
+                                .withLogConsumer(new Slf4jLogConsumer(LOGGER))
+                                .withNetwork(network)
+                                .withNetworkAliases("kafka")
+                                .withListener("kafka:19092");
         addArguments(redpandaContainer, "--memory=2G");
         redpandaContainer.start();
 

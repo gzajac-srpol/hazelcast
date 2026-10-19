@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,12 +29,15 @@ import com.hazelcast.security.PermissionsUtil;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.Serial;
 import java.security.Permission;
 import java.util.List;
 import java.util.function.Function;
 
 @SerializableByConvention
 public class MetaSupplierFromProcessorSupplier implements ProcessorMetaSupplier, DataSerializable, ConnectorNameAware {
+    @Serial
+    private static final long serialVersionUID = 1L;
     private int preferredLocalParallelism;
     private ProcessorSupplier processorSupplier;
     private Permission permission;

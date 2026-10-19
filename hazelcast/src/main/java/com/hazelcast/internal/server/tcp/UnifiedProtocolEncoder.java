@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import com.hazelcast.spi.properties.HazelcastProperties;
 import java.nio.ByteBuffer;
 
 import static com.hazelcast.internal.networking.ChannelOption.SO_SNDBUF;
+import static com.hazelcast.internal.networking.HandlerStatus.BLOCKED;
 import static com.hazelcast.internal.networking.HandlerStatus.CLEAN;
 import static com.hazelcast.internal.networking.HandlerStatus.DIRTY;
 import static com.hazelcast.internal.nio.IOUtil.compactOrClear;
@@ -89,8 +90,8 @@ public class UnifiedProtocolEncoder
 
         try {
             if (inboundProtocol == null) {
-                // deal with spurious calls; the protocol to send isn't known yet.
-                return CLEAN;
+                // the protocol to send isn't known yet.
+                return BLOCKED;
             }
 
             if (CLUSTER.equals(inboundProtocol)) {
@@ -123,7 +124,9 @@ public class UnifiedProtocolEncoder
                 }
             }
 
-            return CLEAN;
+            // Blocking avoids a busy loop, but outbound frames may accumulate until the connection is closed
+            // TODO: close stalled protocol negotiations - https://hazelcast.atlassian.net/browse/CTT-1426
+            return encoderCanReplace ? CLEAN : BLOCKED;
         } finally {
             dst.flip();
         }

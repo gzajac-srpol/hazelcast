@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+  ~ Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -522,6 +522,8 @@
                 with the reflective Compact serializer. It is meant to be used
                 to serialize classes that are serializable with other mechanisms
                 like Java serialization with Compact serialization.
+            * <zero-config-filter>:
+                Configure blacklisting and whitelisting for restricting zero-config compact serialization.
     -->
     <serialization>
         <portable-version>3</portable-version>
@@ -566,6 +568,17 @@
             <classes>
                 <class>com.hazelcast.examples.DummyType</class>
             </classes>
+            <zero-config-filter defaults-disabled="false">
+                <blacklist>
+                    <class>com.acme.app.BeanComparator</class>
+                </blacklist>
+                <whitelist>
+                    <class>example.Foo</class>
+                    <package>com.acme.app</package>
+                    <package>com.acme.app.subpkg</package>
+                    <prefix>com.acme.</prefix>
+                </whitelist>
+            </zero-config-filter>
         </compact-serialization>
     </serialization>
     <!--
@@ -582,9 +595,9 @@
         * POOLED: Manages memory blocks in thread local pools.
 
         It has the following sub-elements:
-        - <size>:
-            Size of the total native memory to allocate. You can give the size using its "value" attribute and the unit
-            using its "unit" attribute. Unit can be bytes, kilobytes, megabytes and gigabytes. Default value is 128 and
+        - <capacity>:
+            Defines the total native memory capacity to allocate. You can give the size using its "value" attribute and the unit
+            using its "unit" attribute. Unit can be bytes, kilobytes, megabytes and gigabytes. Default value is 512 and
             default unit is MEGABYTES.
         - <min-block-size>:
             Minimum size of the blocks in bytes to split and fragment a page block to assign to an allocation request.
@@ -597,7 +610,7 @@
             used only by the POOLED memory allocator. Its default value is 12.5.
     -->
     <native-memory enabled="false" allocator-type="POOLED">
-        <size unit="MEGABYTES" value="128"/>
+        <capacity unit="MEGABYTES" value="128"/>
         <min-block-size>1</min-block-size>
         <page-size>1</page-size>
         <metadata-space-percentage>40.5</metadata-space-percentage>

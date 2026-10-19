@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ public class DetermineLocalParallelismTest extends SimpleTestInClusterSupport {
         ExecutionPlanBuilder.createExecutionPlans(
                 nodeEngine,
                 ((ClusterServiceImpl) nodeEngine.getClusterService()).getMembershipManager().getMembersView().getMembers(),
-                dag, 1, 1, new JobConfig(), NO_SNAPSHOT, false, null);
+                dag, 1, 1, new JobConfig(), NO_SNAPSHOT, false, false, null);
     }
 
     private static class ValidatingMetaSupplier implements ProcessorMetaSupplier {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,5 +94,32 @@ public class CPSubsystemConfigTest extends HazelcastTestSupport {
         int expected = 100;
         config.setCPMapLimit(100);
         assertEquals(expected, config.getCPMapLimit());
+    }
+
+    @Test(expected = InvalidConfigurationException.class)
+    public void testThrowsWhenCpPriorityGreaterThanZeroAndAbdicatingTrue() {
+        CPSubsystemConfig config = new CPSubsystemConfig();
+        config.setCPMemberPriority(1);
+        config.setAutoStepDownWhenLeader(true);
+    }
+
+    @Test(expected = InvalidConfigurationException.class)
+    public void testThrowsWhenAbdicatingTrueAndCpPriorityGreaterThanZero() {
+        CPSubsystemConfig config = new CPSubsystemConfig();
+        config.setAutoStepDownWhenLeader(true);
+        config.setCPMemberPriority(1);
+    }
+
+    @Test
+    public void testSuccessWhenCpPriorityAndAbdicatingSet() {
+        CPSubsystemConfig config = new CPSubsystemConfig();
+        // case 1
+        config.setCPMemberPriority(0);
+        config.setAutoStepDownWhenLeader(true);
+        // case 2
+        config.setCPMemberPriority(-1);
+        // case 3
+        config.setAutoStepDownWhenLeader(false);
+        config.setCPMemberPriority(10);
     }
 }

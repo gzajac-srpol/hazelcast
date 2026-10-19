@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -139,16 +139,16 @@ public class DurableExecutorContainer {
         return userCodeNamespace;
     }
 
-    public final class TaskProcessor extends FutureTask implements Runnable {
+    public final class TaskProcessor extends FutureTask<Object> implements Runnable {
 
         private final int sequence;
         private final long creationTime = Clock.currentTimeMillis();
-        private final String callableString;
+        private final Callable<?> callable;
 
         private TaskProcessor(int sequence, Callable callable) {
             //noinspection unchecked
             super(callable);
-            this.callableString = String.valueOf(callable);
+            this.callable = callable;
             this.sequence = sequence;
 
             if (statisticsEnabled) {
@@ -171,7 +171,7 @@ public class DurableExecutorContainer {
                     response = get();
                 }
             } catch (Exception e) {
-                logger.warning("While executing callable: " + callableString, e);
+                logger.warning("While executing callable: " + callable, e);
                 response = e;
             } finally {
                 if (!isCancelled()) {

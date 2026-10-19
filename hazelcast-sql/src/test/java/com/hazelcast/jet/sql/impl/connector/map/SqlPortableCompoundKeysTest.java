@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-// https://hazelcast.atlassian.net/browse/HZ-4026
+// https://hazelcast.atlassian.net/browse/HZOLD-4026
 @RunWith(HazelcastSerialClassRunner.class)
 public class SqlPortableCompoundKeysTest extends SqlTestSupport {
 

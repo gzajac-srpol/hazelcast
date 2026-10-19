@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ import com.hazelcast.internal.cluster.impl.ClusterDataSerializerHook;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
+
+import javax.annotation.Nonnull;
+
 import com.hazelcast.internal.util.StringUtil;
 
 import java.io.IOException;
@@ -70,7 +73,7 @@ public final class MemberVersion
     // populate this Version's major, minor, patch from given String
     private void parse(String version) {
         String[] tokens = StringUtil.tokenizeVersionString(version);
-        assert tokens != null;
+        assert tokens != null : "Unable to parse version string " + version;
         this.major = Byte.parseByte(tokens[0]);
         this.minor = Byte.parseByte(tokens[1]);
         if (tokens.length > 3 && tokens[3] != null) {
@@ -184,6 +187,7 @@ public final class MemberVersion
     /**
      * @return a {@link Version} initialized with this {@code MemberVersion}'s major.minor version.
      */
+    @Nonnull
     public Version asVersion() {
         return Version.of(major, minor);
     }

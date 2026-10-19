@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,18 @@
 package com.hazelcast.mapstore.mongodb;
 
 import com.hazelcast.mapstore.GenericMapStoreBasicIT;
-import com.hazelcast.test.HazelcastSerialClassRunner;
+import com.hazelcast.test.HazelcastSerialTestExtension;
 import com.hazelcast.test.annotation.QuickTest;
-import org.junit.BeforeClass;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static com.hazelcast.test.DockerTestUtil.assumeDockerEnabled;
 
-@RunWith(HazelcastSerialClassRunner.class)
-@Category({QuickTest.class})
+@QuickTest
+@ExtendWith(HazelcastSerialTestExtension.class)
 public class MongoGenericMapStoreBasicIT extends GenericMapStoreBasicIT {
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() {
         assumeDockerEnabled();
         initialize(new MongoDatabaseProvider());

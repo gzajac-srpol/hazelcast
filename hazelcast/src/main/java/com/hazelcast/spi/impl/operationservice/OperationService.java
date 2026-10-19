@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.hazelcast.spi.impl.operationservice;
 
 import com.hazelcast.cluster.Address;
 import com.hazelcast.internal.management.dto.SlowOperationDTO;
+import com.hazelcast.jet.impl.operation.MasterAwareOperation;
 import com.hazelcast.spi.impl.PartitionSpecificRunnable;
 import com.hazelcast.spi.impl.operationexecutor.OperationExecutor;
 import com.hazelcast.spi.impl.operationservice.impl.InvocationFuture;
@@ -244,6 +245,25 @@ public interface OperationService {
 
     InvocationBuilder createInvocationBuilder(String serviceName, Operation op, Address target);
 
+    /**
+     * Creates an {@link InvocationBuilder} for invoking an operation on the master member of the cluster.
+     * <p>
+     * Note:
+     * This method only guarantees that the operation will be sent to the master member and,
+     * in case of a retryable exception, it will be retried on the new master node.
+     * However, this method by itself does not guarantee that the operation will actually be
+     * executed on the current master member:
+     * During invocation, the master node may restart and become a non-master member at the
+     * same address as the previous master. In this case, the operation may be executed on
+     * a non-master member.
+     * To prevent this behavior, the operation should implement the {@link MasterAwareOperation} interface
+     * and include an additional check to verify it is executing on the current master.
+     * If not, it should throw a {@link com.hazelcast.internal.cluster.impl.MasterNodeChangedException} exception.
+     *
+     * @param serviceName the name of the service to invoke this Operation on behalf of
+     * @param op          the {@link Operation} to invoke, should implement {@link MasterAwareOperation} interface.
+     * @return the {@link InvocationBuilder} which can be used to configure and execute the invocation
+     */
     InvocationBuilder createMasterInvocationBuilder(String serviceName, Operation op);
 
     /**
@@ -262,6 +282,35 @@ public interface OperationService {
      * @throws Exception
      */
     Map<Integer, Object> invokeOnAllPartitions(String serviceName, OperationFactory operationFactory)
+            throws Exception;
+
+    /**
+     * Invokes a set of operations on all relevant local partitions. Relevant partitions in this
+     * context refer to all owned partitions and replica partitions up to and including
+     * {@code maxReplicaIndex}.
+     * <p>
+     * This method blocks until the operations successfully complete across all partitions, or
+     * they persistently fail after retries. Operations are submitted in a manner that allows
+     * intermediate operations to be executed.
+     * <p>
+     * If the operations have sync backups, this method will <b>not</b> wait for their completion.
+     * Instead, it will return once the operations are completed on primary replicas of the
+     * given {@code partitions}.
+     * <p>
+     *     WARNING: The passed {@link OperationFactory} must produce idempotent
+     *     and commutative operations, as retries will occur for all partitions.
+     * </p>
+     *
+     * @implNote               operations output by the {@code operationFactory} must be idempotent.
+     * @param serviceName      the name of the service.
+     * @param operationFactory the factory responsible for creating idempotent operations
+     * @param maxReplicaIndex  the maximum partition replica index to include
+     * @param timeoutMillis    the maximum milliseconds to wait for all invocations to complete
+     * @return a Map with partitionId as a key and the outcome of the operation as a value.
+     * @throws Exception
+     */
+    Map<Integer, Object> invokeOnRelevantLocalPartitions(String serviceName, OperationFactory operationFactory,
+                                                            int maxReplicaIndex, long timeoutMillis)
             throws Exception;
 
     /**

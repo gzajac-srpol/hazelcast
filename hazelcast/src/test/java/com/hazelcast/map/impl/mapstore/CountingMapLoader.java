@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class CountingMapLoader extends SimpleMapLoader {
 
@@ -48,6 +50,7 @@ class CountingMapLoader extends SimpleMapLoader {
     }
 
     public void reset() {
+        loadAllKeysInvocations.set(0);
         loadedValueCount.set(0);
         loadAllKeysClosed.set(false);
     }
@@ -94,5 +97,17 @@ class CountingMapLoader extends SimpleMapLoader {
         public void close() {
             loadAllKeysClosed.set(true);
         }
+    }
+
+    public void assertNoFullLoadTriggered() {
+        assertThat(loadAllKeysInvocations.get())
+                .as("Expected loadAllKeys to be called 0 times, but was " + loadAllKeysInvocations.get())
+                .isEqualTo(0);
+    }
+
+    public void assertFullLoadTriggeredOnce() {
+        assertThat(loadAllKeysInvocations.get())
+                .as("Expected loadAllKeys to be called 1 times, but was " + loadAllKeysInvocations.get())
+                .isEqualTo(1);
     }
 }

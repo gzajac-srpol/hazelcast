@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ import com.hazelcast.internal.util.MutableLong;
 import com.hazelcast.internal.util.counters.MwCounter;
 import com.hazelcast.internal.util.executor.StripedRunnable;
 import com.hazelcast.logging.ILogger;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -61,7 +60,6 @@ import static com.hazelcast.internal.util.ConcurrencyUtil.getOrPutIfAbsent;
 import static com.hazelcast.internal.util.counters.MwCounter.newMwCounter;
 import static com.hazelcast.spi.properties.ClusterProperty.CHANNEL_COUNT;
 import static java.lang.Math.abs;
-import static java.util.Collections.newSetFromMap;
 
 /**
  * This base class solely exists for the purpose of simplification of the Manager class
@@ -90,10 +88,10 @@ abstract class TcpServerConnectionManagerBase implements ServerConnectionManager
 
     final ConnectionLifecycleListenerImpl connectionLifecycleListener = new ConnectionLifecycleListenerImpl();
     @Probe(name = TCP_METRIC_ENDPOINT_MANAGER_ACTIVE_COUNT, level = MANDATORY)
-    final Set<TcpServerConnection> connections = newSetFromMap(new ConcurrentHashMap<>());
+    final Set<TcpServerConnection> connections = ConcurrentHashMap.newKeySet();
 
     @Probe(name = TCP_METRIC_ENDPOINT_MANAGER_ACCEPTED_SOCKET_COUNT, level = MANDATORY)
-    final Set<Channel> acceptedChannels = newSetFromMap(new ConcurrentHashMap<>());
+    final Set<Channel> acceptedChannels = ConcurrentHashMap.newKeySet();
 
     @Probe(name = TCP_METRIC_ENDPOINT_MANAGER_CONNECTION_LISTENER_COUNT, level = DEBUG)
     final Set<ConnectionListener> connectionListeners = new CopyOnWriteArraySet<>();
@@ -231,7 +229,7 @@ abstract class TcpServerConnectionManagerBase implements ServerConnectionManager
             this.streamId = streamId;
         }
 
-        @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT", justification = "single-writer, many-reader")
+        //@SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT", justification = "single-writer, many-reader")
         @Override
         public void run() {
             retries++;

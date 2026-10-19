@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,8 +51,6 @@ import static com.hazelcast.internal.serialization.impl.compact.CompactUtil.enum
 import static com.hazelcast.internal.serialization.impl.compact.CompactUtil.enumAsStringName;
 import static com.hazelcast.internal.serialization.impl.compact.CompactUtil.enumFromStringName;
 import static com.hazelcast.internal.serialization.impl.compact.CompactUtil.isFieldExist;
-import static com.hazelcast.internal.serialization.impl.compact.CompactUtil.verifyFieldClassIsCompactSerializable;
-import static com.hazelcast.internal.serialization.impl.compact.CompactUtil.verifyFieldClassShouldBeSerializedAsCompact;
 import static com.hazelcast.nio.serialization.FieldKind.ARRAY_OF_BOOLEAN;
 import static com.hazelcast.nio.serialization.FieldKind.ARRAY_OF_COMPACT;
 import static com.hazelcast.nio.serialization.FieldKind.ARRAY_OF_DATE;
@@ -214,8 +212,7 @@ public final class ValueReaderWriters {
         // We allow serializing classes regardless of the following checks if there is an explicit serializer for them.
         if (!isRegisteredAsCompact) {
             // The nested field might not be Compact serializable
-            verifyFieldClassIsCompactSerializable(type, clazz);
-            verifyFieldClassShouldBeSerializedAsCompact(compactStreamSerializer, type, clazz);
+            compactStreamSerializer.verifyFieldCanBeSerializedAsCompact(clazz, type);
         }
         return new CompactReaderWriter(fieldName);
     }
@@ -236,8 +233,7 @@ public final class ValueReaderWriters {
         // We allow serializing classes regardless of the following checks if there is an explicit serializer for them.
         if (!isRegisteredAsCompact) {
             // Elements of the array might not be Compact serializable
-            verifyFieldClassIsCompactSerializable(componentType, clazz);
-            verifyFieldClassShouldBeSerializedAsCompact(compactStreamSerializer, componentType, clazz);
+            compactStreamSerializer.verifyFieldCanBeSerializedAsCompact(clazz, componentType);
         }
         return new CompactArrayReaderWriter(fieldName, componentType);
     }

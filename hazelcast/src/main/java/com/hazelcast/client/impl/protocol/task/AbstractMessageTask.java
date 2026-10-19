@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -144,6 +144,7 @@ public abstract class AbstractMessageTask<P> implements MessageTask, SecureReque
 
     @Override
     public final void run() {
+        MessageTaskExecutionTracker.markThreadRunningTask();
         try {
             Address address = connection.getRemoteAddress();
             if (isManagementTask() && !clientEngine.getManagementTasksChecker().isTrusted(address)) {
@@ -158,6 +159,8 @@ public abstract class AbstractMessageTask<P> implements MessageTask, SecureReque
             }
         } catch (Throwable e) {
             handleProcessingFailure(e);
+        } finally {
+            MessageTaskExecutionTracker.unmarkThreadRunningTask();
         }
     }
 

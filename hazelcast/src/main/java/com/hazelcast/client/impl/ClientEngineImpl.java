@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -173,7 +173,7 @@ public class ClientEngineImpl implements ClientEngine, CoreService,
     private ClientExceptionFactory initClientExceptionFactory() {
         ClassLoader configClassLoader = nodeEngine.getConfigClassLoader();
         boolean jcacheAvailable = JCacheDetector.isJCacheAvailable(configClassLoader);
-        return new ClientExceptionFactory(jcacheAvailable, configClassLoader);
+        return new ClientExceptionFactory(jcacheAvailable, configClassLoader, node.getLoggingService());
     }
 
     private Executor newClientExecutor() {
@@ -480,7 +480,7 @@ public class ClientEngineImpl implements ClientEngine, CoreService,
             if (!connection.isClient() || !nodeEngine.isRunning()) {
                 return;
             }
-            final ClientEndpointImpl endpoint = (ClientEndpointImpl) endpointManager.getEndpoint(connection);
+            final ClientEndpoint endpoint = endpointManager.getEndpoint(connection);
             if (endpoint == null) {
                 logger.finest("connectionRemoved: No endpoint for connection:%s", connection);
                 return;

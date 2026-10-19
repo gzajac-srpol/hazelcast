@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,7 +89,7 @@ public class GroupAggregateBuilder1<T0, K> {
      * @param <OUT> output type of the returned stage
      * @return a new stage representing the co-group-and-aggregate operation
      */
-    @Deprecated
+    @Deprecated(since = "5.0", forRemoval = true)
     @Nonnull
     public <R, OUT> BatchStage<OUT> build(
             @Nonnull AggregateOperation<?, R> aggrOp,

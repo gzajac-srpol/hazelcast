@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import com.hazelcast.core.HazelcastInstanceNotActiveException;
 import com.hazelcast.function.FunctionEx;
 import com.hazelcast.instance.impl.Node;
 import com.hazelcast.internal.cluster.ClusterService;
+import com.hazelcast.internal.cluster.impl.MasterNodeChangedException;
 import com.hazelcast.internal.cluster.impl.MembersView;
 import com.hazelcast.internal.metrics.DynamicMetricsProvider;
 import com.hazelcast.internal.metrics.MetricDescriptor;
@@ -121,7 +122,6 @@ import static com.hazelcast.jet.impl.AbstractJobProxy.cannotAddStatusListener;
 import static com.hazelcast.jet.impl.JobClassLoaderService.JobPhase.COORDINATOR;
 import static com.hazelcast.jet.impl.TerminationMode.CANCEL_FORCEFUL;
 import static com.hazelcast.jet.impl.execution.init.CustomClassLoadedObject.deserializeWithCustomClassLoader;
-import static com.hazelcast.jet.impl.operation.GetJobIdsOperation.ALL_JOBS;
 import static com.hazelcast.spi.properties.ClusterProperty.JOB_SCAN_PERIOD;
 import static java.util.Collections.emptyList;
 import static java.util.Comparator.comparing;
@@ -300,7 +300,7 @@ public class JobCoordinationService implements DynamicMetricsProvider {
                 }
 
                 // If there is no master context and job result at the same time, it means this is the first submission
-                onJobSubmitted(dag);
+                onJobSubmitted(dag, jobConfig);
                 jobRepository.putNewJobRecord(jobRecord);
                 logger.info("Starting job " + idToString(masterContext.jobId()) + " based on submit request");
             } catch (Throwable e) {
@@ -382,7 +382,7 @@ public class JobCoordinationService implements DynamicMetricsProvider {
                 "The Isolated Jobs feature is only available in Hazelcast Enterprise Edition.");
     }
 
-    protected void onJobSubmitted(DAG dag) {
+    protected void onJobSubmitted(DAG dag, JobConfig config) {
         jobSubmitted.inc();
     }
 
@@ -537,78 +537,84 @@ public class JobCoordinationService implements DynamicMetricsProvider {
         ((LightMasterContext) mc).requestTermination(userInitiated);
     }
 
-    /**
-     * Return the job IDs of jobs with the given name, sorted by
-     * {active/completed, creation time}, active & newest first.
-     */
-    public CompletableFuture<GetJobIdsResult> getJobIds(@Nullable String onlyName, long onlyJobId) {
-        if (onlyName != null) {
-            assertIsMaster("Cannot query list of job IDs by name on non-master node");
-        }
 
+    public CompletableFuture<GetJobIdsResult> getJobIdById(long jobId) {
         return submitToCoordinatorThread(() -> {
-            if (onlyJobId != ALL_JOBS) {
-                Object lmc = lightMasterContexts.get(onlyJobId);
-                if (lmc != null && lmc != UNINITIALIZED_LIGHT_JOB_MARKER) {
-                    return new GetJobIdsResult(onlyJobId, true);
-                }
-
-                if (isMaster()) {
-                    try {
-                        callWithJob(onlyJobId, mc -> null, jobResult -> null, jobRecord -> null, null)
-                                .get();
-                    } catch (ExecutionException e) {
-                        if (e.getCause() instanceof JobNotFoundException) {
-                            return GetJobIdsResult.EMPTY;
-                        }
-                        throw e;
-                    }
-                    return new GetJobIdsResult(onlyJobId, false);
-                }
-                return GetJobIdsResult.EMPTY;
+            Object lmc = lightMasterContexts.get(jobId);
+            if (lmc != null && lmc != UNINITIALIZED_LIGHT_JOB_MARKER) {
+                return new GetJobIdsResult(jobId, true);
             }
+            if (isMaster()) {
+                try {
+                    callWithJob(jobId, mc -> null, jobResult -> null, jobRecord -> null, null)
+                            .get();
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof JobNotFoundException) {
+                        return GetJobIdsResult.EMPTY;
+                    }
+                    throw e;
+                }
+                return new GetJobIdsResult(jobId, false);
+            }
+            return GetJobIdsResult.EMPTY;
+        });
+    }
 
+    public CompletableFuture<GetJobIdsResult> getLightJobIds() {
+        return submitToCoordinatorThread(() -> {
+            List<Tuple2<Long, Boolean>> result = new ArrayList<>();
+            for (Object ctx : lightMasterContexts.values()) {
+                if (ctx != UNINITIALIZED_LIGHT_JOB_MARKER) {
+                    result.add(tuple2(((LightMasterContext) ctx).getJobId(), true));
+                }
+            }
+            return new GetJobIdsResult(result);
+        });
+    }
+
+    public CompletableFuture<GetJobIdsResult> getAllJobsId() {
+        assertIsMaster("This method is allowed to run only on the master node!");
+        return submitToCoordinatorThread(() -> {
             List<Tuple2<Long, Boolean>> result = new ArrayList<>();
 
-            // add light jobs - only if no name is requested, light jobs can't have a name
-            if (onlyName == null) {
-                for (Object ctx : lightMasterContexts.values()) {
-                    if (ctx != UNINITIALIZED_LIGHT_JOB_MARKER) {
-                        result.add(tuple2(((LightMasterContext) ctx).getJobId(), true));
-                    }
+            // add light jobs
+            for (Object ctx : lightMasterContexts.values()) {
+                if (ctx != UNINITIALIZED_LIGHT_JOB_MARKER) {
+                    result.add(tuple2(((LightMasterContext) ctx).getJobId(), true));
+                }
+            }
+            // add normal jobs
+            for (Long jobId : jobRepository.getAllJobIds()) {
+                result.add(tuple2(jobId, false));
+            }
+
+            return new GetJobIdsResult(result);
+        });
+    }
+
+    public CompletableFuture<GetJobIdsResult> getNormalJobIdsByName(@Nonnull String name) {
+        return submitToCoordinatorThread(() -> {
+            List<Tuple2<Long, Boolean>> result = new ArrayList<>();
+            // we first need to collect to a map where the jobId is the key to eliminate possible duplicates
+            // in JobResult and also to be able to sort from newest to oldest
+            Map<Long, Long> jobs = new HashMap<>();
+            for (MasterContext ctx : masterContexts.values()) {
+                if (name.equals(ctx.jobConfig().getName())) {
+                    jobs.put(ctx.jobId(), Long.MAX_VALUE);
                 }
             }
 
-            // add normal jobs - only on master
-            if (isMaster()) {
-                if (onlyName != null) {
-                    // we first need to collect to a map where the jobId is the key to eliminate possible duplicates
-                    // in JobResult and also to be able to sort from newest to oldest
-                    Map<Long, Long> jobs = new HashMap<>();
-                    for (MasterContext ctx : masterContexts.values()) {
-                        if (onlyName.equals(ctx.jobConfig().getName())) {
-                            jobs.put(ctx.jobId(), Long.MAX_VALUE);
-                        }
-                    }
-
-                    for (JobResult jobResult : jobRepository.getJobResults(onlyName)) {
-                        jobs.put(jobResult.getJobId(), jobResult.getCreationTime());
-                    }
-
-                    jobs.entrySet().stream()
-                            .sorted(
-                                    comparing(Entry<Long, Long>::getValue)
-                                            .thenComparing(Entry::getKey)
-                                            .reversed()
-                            )
-                            .forEach(entry -> result.add(tuple2(entry.getKey(), false)));
-                } else {
-                    for (Long jobId : jobRepository.getAllJobIds()) {
-                        result.add(tuple2(jobId, false));
-                    }
-                }
+            for (JobResult jobResult : jobRepository.getJobResults(name)) {
+                jobs.put(jobResult.getJobId(), jobResult.getCreationTime());
             }
 
+            jobs.entrySet().stream()
+                    .sorted(
+                            comparing(Entry<Long, Long>::getValue)
+                                    .thenComparing(Entry::getKey)
+                                    .reversed()
+                    )
+                    .forEach(entry -> result.add(tuple2(entry.getKey(), false)));
             return new GetJobIdsResult(result);
         });
     }
@@ -763,9 +769,9 @@ public class JobCoordinationService implements DynamicMetricsProvider {
     /**
      * Return a summary of all jobs
      *
-     * @deprecated Since 5.3, to be removed in 6.0. Use {@link #getJobAndSqlSummaryList()} instead
+     * @deprecated to be removed in 6.0. Use {@link #getJobAndSqlSummaryList()} instead
      */
-    @Deprecated
+    @Deprecated(since = "5.3", forRemoval = true)
     public CompletableFuture<List<JobSummary>> getJobSummaryList() {
         return getJobAndSqlSummaryList().thenApply(jobAndSqlSummaries -> jobAndSqlSummaries.stream()
                 .map(this::toJobSummary)
@@ -781,9 +787,9 @@ public class JobCoordinationService implements DynamicMetricsProvider {
     /**
      * Return a summary of all jobs with sql data
      */
-    public CompletableFuture<List<JobAndSqlSummary>> getJobAndSqlSummaryList() {
+    public CompletableFuture<List<JobAndSqlSummaryIds>> getJobAndSqlSummaryList() {
         return submitToCoordinatorThread(() -> {
-            Map<Long, JobAndSqlSummary> jobs = new HashMap<>();
+            Map<Long, JobAndSqlSummaryIds> jobs = new HashMap<>();
             if (isMaster()) {
                 // running jobs
                 jobRepository.getJobRecords().stream()
@@ -798,7 +804,7 @@ public class JobCoordinationService implements DynamicMetricsProvider {
                             // Pre-review note : volatile read at supplier, should not read under lock path.
                             // Q: Any other better way to get executionRecord?
                             JobExecutionRecord executionRecord = jobRepository.getJobExecutionRecord(r.getJobId());
-                            return new JobAndSqlSummary(
+                            return new JobAndSqlSummaryIds(
                                     false, r.getJobId(), 0, r.getJobNameOrId(), r.getJobStatus(), r.getCreationTime(),
                                     r.getCompletionTime(), r.getFailureText(), getSqlSummary(r.getJobConfig()),
                                     executionRecord == null || executionRecord.getSuspensionCause() == null ? null :
@@ -819,7 +825,7 @@ public class JobCoordinationService implements DynamicMetricsProvider {
         });
     }
 
-    private JobAndSqlSummary getJobAndSqlSummary(LightMasterContext lmc) {
+    private JobAndSqlSummaryIds getJobAndSqlSummary(LightMasterContext lmc) {
         SqlSummary sqlSummary = getSqlSummary(lmc.getJobConfig());
 
         // For simplicity, we assume here that light job is running iff LightMasterContext exists:
@@ -845,7 +851,7 @@ public class JobCoordinationService implements DynamicMetricsProvider {
         // In such scenario finished job will be reported as running.
         //
         // Note: suspensionCause is not supported for light jobs.
-        return new JobAndSqlSummary(
+        return new JobAndSqlSummaryIds(
                 true, lmc.getJobId(), lmc.getJobId(), idToString(lmc.getJobId()),
                 RUNNING, lmc.getStartTime(), 0, null, sqlSummary, null,
                 false);
@@ -1378,7 +1384,7 @@ public class JobCoordinationService implements DynamicMetricsProvider {
         return clusterService.getMembers(DATA_MEMBER_SELECTOR).size();
     }
 
-    private JobAndSqlSummary getJobAndSqlSummary(JobRecord record) {
+    private JobAndSqlSummaryIds getJobAndSqlSummary(JobRecord record) {
         MasterContext ctx = masterContexts.get(record.getJobId());
         long execId = ctx == null ? 0 : ctx.executionId();
         JobExecutionRecord executionRecord = jobRepository.getJobExecutionRecord(record.getJobId());
@@ -1410,7 +1416,7 @@ public class JobCoordinationService implements DynamicMetricsProvider {
             userCancelled = status == FAILED &&
                     maybeTerminationRequest.map(TerminationRequest::isUserInitiated).orElse(false);
         }
-        return new JobAndSqlSummary(false, record.getJobId(), execId, record.getJobNameOrId(), status,
+        return new JobAndSqlSummaryIds(false, record.getJobId(), execId, record.getJobNameOrId(), status,
                 record.getCreationTime(), 0, null, getSqlSummary(record.getConfig()), suspensionCause,
                 userCancelled);
     }
@@ -1477,7 +1483,9 @@ public class JobCoordinationService implements DynamicMetricsProvider {
         // used by jet-enterprise
     void assertIsMaster(String error) {
         if (!isMaster()) {
-            throw new JetException(error + ". Master address: " + nodeEngine.getClusterService().getMasterAddress());
+            throw new MasterNodeChangedException(
+                    error + ". Master address: " + nodeEngine.getClusterService().getMasterAddress()
+            );
         }
     }
 

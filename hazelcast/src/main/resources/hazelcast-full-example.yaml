@@ -1,4 +1,4 @@
-# Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+# Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -2217,6 +2217,8 @@ hazelcast:
   #       with the reflective Compact serializer. It is meant to be used
   #       to serialize classes that are serializable with other mechanisms
   #       like Java serialization with Compact serialization.
+  #     * "zero-config-filter:
+  #       Configure blacklisting and whitelisting for restricting zero-config compact serialization.
   #
   serialization:
     portable-version: 0
@@ -2254,6 +2256,19 @@ hazelcast:
         - serializer: com.hazelcast.examples.DummyTypeSerializer
       classes:
         - class: com.hazelcast.examples.DummyType
+      zero-config-filter:
+        defaults-disabled: false
+        blacklist:
+          class:
+            - com.acme.app.BeanComparator
+        whitelist:
+          class:
+            - example.Foo
+          package:
+            - com.acme.app
+            - com.acme.app.subpkg
+          prefix:
+            - com.acme.
   #
   # ===== HAZELCAST HIGH-DENSITY MEMORY STORE CONFIGURATION =====
   #
@@ -2268,9 +2283,9 @@ hazelcast:
   # * POOLED: Manages memory blocks in thread local pools.
   #
   # It has the following sub-elements:
-  # - "size":
-  #     Size of the total native memory to allocate. You can give the size using its "value" attribute and the unit
-  #     using its "unit" attribute. Unit can be bytes, kilobytes, megabytes and gigabytes. Default value is 128 and
+  # - "capacity":
+  #     Defines the total native memory capacity to allocate. You can give the size using its "value" attribute and the unit
+  #     using its "unit" attribute. Unit can be bytes, kilobytes, megabytes and gigabytes. Default value is 512 and
   #     default unit is MEGABYTES.
   # - "min-block-size":
   #     Minimum size of the blocks in bytes to split and fragment a page block to assign to an allocation request.
@@ -2299,7 +2314,7 @@ hazelcast:
   native-memory:
     enabled: true
     allocator-type: POOLED
-    size:
+    capacity:
       unit: MEGABYTES
       value: 256
     min-block-size: 32
@@ -3650,6 +3665,7 @@ hazelcast:
     base-dir: custom-cp-dir
     data-load-timeout-seconds: 30
     cp-member-priority: 1
+    auto-step-down-when-leader: false
     map-limit: 5
     raft-algorithm:
       leader-election-timeout-in-millis: 2000
@@ -3674,8 +3690,10 @@ hazelcast:
     maps:
       map1:
         max-size-mb: 50
+        purge-enabled: false
       map2:
         max-size-mb: 25
+        purge-enabled: true
 
   #
   # ===== HAZELCAST METRICS CONFIGURATION =====

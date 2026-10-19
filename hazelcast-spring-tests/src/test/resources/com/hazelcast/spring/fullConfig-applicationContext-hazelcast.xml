@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+  ~ Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -678,6 +678,18 @@
                     <hz:classes>
                         <hz:class>com.hazelcast.spring.serialization.DummyReflectiveSerializable</hz:class>
                     </hz:classes>
+                    <hz:zero-config-filter defaults-disabled="true">
+                        <hz:blacklist>
+                            <hz:class>com.hz.ClassA</hz:class>
+                            <hz:package>com.hz.a</hz:package>
+                            <hz:prefix>com.hz.a.other.</hz:prefix>
+                        </hz:blacklist>
+                        <hz:whitelist>
+                            <hz:class>com.hz.ClassB</hz:class>
+                            <hz:package>com.hz.b</hz:package>
+                            <hz:prefix>com.hazelcast</hz:prefix>
+                        </hz:whitelist>
+                    </hz:zero-config-filter>
                 </hz:compact-serialization>
             </hz:serialization>
 
@@ -1074,7 +1086,6 @@
                 <hz:persistence-enabled>false</hz:persistence-enabled>
                 <hz:base-dir>/custom-dir</hz:base-dir>
                 <hz:data-load-timeout-seconds>30</hz:data-load-timeout-seconds>
-                <hz:cp-member-priority>-1</hz:cp-member-priority>
                 <hz:raft-algorithm>
                     <hz:leader-election-timeout-in-millis>500</hz:leader-election-timeout-in-millis>
                     <hz:leader-heartbeat-period-in-millis>100</hz:leader-heartbeat-period-in-millis>

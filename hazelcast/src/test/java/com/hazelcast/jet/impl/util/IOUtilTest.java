@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,7 +97,7 @@ public class IOUtilTest extends JetTestSupport {
                             String line = lines.iterator().next();
                             return line.equals(p.getFileName().toString() + " content");
                         } catch (IOException e) {
-                            throw ExceptionUtil.rethrow(e);
+                            throw JetExceptionUtil.rethrow(e);
                         }
                     });
             JetAssert.assertTrue("File contents are not matching", allMatch);

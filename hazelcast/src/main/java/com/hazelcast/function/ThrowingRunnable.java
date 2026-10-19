@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import com.hazelcast.internal.util.ExceptionUtil;
 
 /**
  * A {@link Runnable} that declares checked exception.
- * @since 6.0
+ * @since 5.5
  */
 @FunctionalInterface
 public interface ThrowingRunnable extends Runnable {
@@ -38,4 +38,22 @@ public interface ThrowingRunnable extends Runnable {
             throw ExceptionUtil.sneakyThrow(e);
         }
     }
+
+    /**
+     * Wraps given {@link Runnable} into {@link ThrowingRunnable}.
+     * @since 5.6
+     */
+    static ThrowingRunnable wrap(Runnable step) {
+        return step::run;
+    }
+
+    /**
+     * Wraps given {@link Runnable} into {@link ThrowingRunnable}. Helpful in stream-based lambda expressions
+     * to tip that the function is throwing.
+     * @since 6.0
+     */
+    static ThrowingRunnable wrap(ThrowingRunnable step) {
+        return step;
+    }
+
 }

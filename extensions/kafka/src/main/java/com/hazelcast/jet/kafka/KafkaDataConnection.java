@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import com.hazelcast.core.HazelcastException;
 import com.hazelcast.dataconnection.DataConnection;
 import com.hazelcast.dataconnection.DataConnectionBase;
 import com.hazelcast.dataconnection.DataConnectionResource;
-import com.hazelcast.jet.impl.util.ConcurrentMemoizingSupplier;
+import com.hazelcast.internal.util.concurrent.ConcurrentMemoizingSupplier;
 import com.hazelcast.jet.impl.util.Util;
 import com.hazelcast.jet.kafka.impl.NonClosingKafkaProducer;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+
+import static com.hazelcast.internal.util.Memoizers.memoizeConcurrent;
 
 /**
  * {@link DataConnection} implementation for Kafka.
@@ -70,7 +72,7 @@ public class KafkaDataConnection extends DataConnectionBase {
     public KafkaDataConnection(@Nonnull DataConnectionConfig config) {
         super(config);
 
-        producerSupplier = new ConcurrentMemoizingSupplier<>(() ->
+        producerSupplier = memoizeConcurrent(() ->
                 new NonClosingKafkaProducer<>(config.getProperties(), this::release));
     }
 

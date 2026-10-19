@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,6 +86,8 @@ import static com.hazelcast.config.MaxSizePolicy.ENTRY_COUNT;
 import static com.hazelcast.config.MemoryTierConfig.DEFAULT_CAPACITY;
 import static com.hazelcast.config.PermissionConfig.PermissionType.CACHE;
 import static com.hazelcast.config.PermissionConfig.PermissionType.CONFIG;
+import static com.hazelcast.config.PermissionConfig.PermissionType.SQL;
+import static com.hazelcast.config.PermissionConfig.PermissionType.USER_CODE_NAMESPACE;
 import static com.hazelcast.config.PersistentMemoryMode.MOUNTED;
 import static com.hazelcast.config.PersistentMemoryMode.SYSTEM_MEMORY;
 import static com.hazelcast.config.WanQueueFullBehavior.DISCARD_AFTER_MUTATION;
@@ -1540,7 +1542,7 @@ public class YamlConfigBuilderTest extends AbstractConfigBuilderTest {
                 + "      near-cache:\n"
                 + "        name: test\n"
                 + "        in-memory-format: OBJECT\n"
-                + "        serialize-keys: false\n"
+                + "        serialize-keys: true\n"
                 + "        time-to-live-seconds: 77\n"
                 + "        max-idle-seconds: 92\n"
                 + "        invalidate-on-change: false\n"
@@ -1555,6 +1557,7 @@ public class YamlConfigBuilderTest extends AbstractConfigBuilderTest {
         NearCacheConfig nearCacheConfig = mapConfig.getNearCacheConfig();
 
         assertEquals(InMemoryFormat.OBJECT, nearCacheConfig.getInMemoryFormat());
+        assertTrue(nearCacheConfig.isSerializeKeys());
         assertEquals(77, nearCacheConfig.getTimeToLiveSeconds());
         assertEquals(92, nearCacheConfig.getMaxIdleSeconds());
         assertFalse(nearCacheConfig.isInvalidateOnChange());
@@ -3433,6 +3436,54 @@ public class YamlConfigBuilderTest extends AbstractConfigBuilderTest {
     }
 
     @Override
+    public void testCompactSerialization_zeroConfigRestrictions() {
+        String yaml = """
+                hazelcast:
+                  serialization:
+                    compact-serialization:
+                      zero-config-filter:
+                        whitelist:
+                          class:
+                          - com.acme.MyClass
+                          package:
+                          - com.acme.package
+                          prefix:
+                          - com.acme.prefix.
+                        blacklist:
+                          class:
+                          - com.acme.MyClass2
+                          package:
+                          - com.acme.package2
+                          prefix:
+                          - com.acme.prefix2.
+                """;
+
+        SerializationConfig config = buildConfig(yaml).getSerializationConfig();
+        CompactTestUtil.verifySerializationServiceBuilds(config);
+        ClassFilter expectedWhitelist = new ClassFilter().addClasses("com.acme.MyClass").addPackages("com.acme.package")
+                                                         .addPrefixes("com.acme.prefix.");
+        ClassFilter expectedBlacklist = new ClassFilter().addClasses("com.acme.MyClass2").addPackages("com.acme.package2")
+                                                         .addPrefixes("com.acme.prefix2.");
+        CompactTestUtil.assertZeroConfigFilter(config,
+                new JavaSerializationFilterConfig().setWhitelist(expectedWhitelist).setBlacklist(expectedBlacklist));
+    }
+
+    @Override
+    public void testCompactSerialization_zeroConfigDefaultsDisabled() {
+        String yaml = """
+                hazelcast:
+                  serialization:
+                    compact-serialization:
+                      zero-config-filter:
+                        defaults-disabled: true
+                """;
+
+        SerializationConfig config = buildConfig(yaml).getSerializationConfig();
+        CompactTestUtil.verifySerializationServiceBuilds(config);
+        CompactTestUtil.assertZeroConfigFilter(config, new JavaSerializationFilterConfig().setDefaultsDisabled(true));
+    }
+
+    @Override
     @Test
     public void testAllowOverrideDefaultSerializers() {
         final String yaml = """
@@ -3987,6 +4038,60 @@ public class YamlConfigBuilderTest extends AbstractConfigBuilderTest {
     }
 
     @Override
+    @Test
+    public void testUserCodeNamespacePermission() {
+        String yaml = """
+                hazelcast:
+                  security:
+                    enabled: true
+                    client-permissions:
+                      user-code-namespace:
+                        - name: test-ucn
+                          principal: dev
+                          actions:
+                            - create
+                            - destroy
+                            - add
+                            - remove
+                            - use
+                """;
+
+        Config config = buildConfig(yaml);
+        PermissionConfig expected = new PermissionConfig(USER_CODE_NAMESPACE, "test-ucn", "dev");
+        expected.addAction("create").addAction("destroy").addAction("add").addAction("remove").addAction("use");
+        assertPermissionConfig(expected, config);
+    }
+
+    @Override
+    public void testSqlPermission() {
+        String yaml = """
+                hazelcast:
+                  security:
+                    enabled: true
+                    client-permissions:
+                      sql:
+                        - name: test-sql
+                          principal: dev
+                          actions:
+                            - view-mapping
+                            - create-view
+                            - drop-view
+                            - create-type
+                            - drop-type
+                            - view-dataconnection
+                            - create-dataconnection
+                            - drop-dataconnection
+                """;
+
+        Config config = buildConfig(yaml);
+        PermissionConfig expected = new PermissionConfig(SQL, "test-sql", "dev");
+        expected.addAction("view-mapping").addAction("create-view").addAction("drop-view").addAction("create-type")
+                .addAction("drop-type").addAction("view-dataconnection").addAction("create-dataconnection")
+                .addAction("drop-dataconnection");
+        assertPermissionConfig(expected, config);
+    }
+
+    @Override
     @Test(expected = InvalidConfigurationException.class)
     public void testCacheConfig_withNativeInMemoryFormat_failsFastInOSS() {
         String yaml = """
@@ -4295,6 +4400,84 @@ public class YamlConfigBuilderTest extends AbstractConfigBuilderTest {
 
     }
 
+    @Override
+    @Test
+    public void testMultipleClientEndpointConfigs_throwsException() {
+        String yaml = """
+            hazelcast:
+            advanced-network:
+              client-server-socket-endpoint-config: {}
+              client-server-socket-endpoint-config: {}""";
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(yaml);
+    }
+
+    @Override
+    @Test
+    public void testMultipleRestEndpointConfigs_throwsException() {
+        String yaml = """
+            hazelcast:
+            advanced-network:
+              rest-server-socket-endpoint-config: {}
+              rest-server-socket-endpoint-config: {}""";
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(yaml);
+    }
+
+    @Override
+    @Test
+    public void testMultipleMemcacheEndpointConfigs_throwsException() {
+        String yaml = """
+            hazelcast:
+            advanced-network:
+              memcache-server-socket-endpoint-config: {}
+              memcache-server-socket-endpoint-config: {}""";
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(yaml);
+    }
+
+    @Override
+    @Test
+    public void testMultipleJoinElements_throwsException() {
+        String yaml = """
+            hazelcast:
+            advanced-network:
+              join: {}
+              join: {}""";
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(yaml);
+    }
+
+    @Override
+    @Test
+    public void testMultipleFailureDetectorElements_throwsException() {
+        String yaml = """
+            hazelcast:
+            advanced-network:
+              failure-detector: {}
+              failure-detector: {}""";
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(yaml);
+    }
+
+    @Override
+    @Test
+    public void testMultipleMemberAddressProviderElements_throwsException() {
+        String yaml = """
+            hazelcast:
+            advanced-network:
+              member-address-provider: {}
+              member-address-provider: {}""";
+
+        expected.expect(InvalidConfigurationException.class);
+        buildConfig(yaml);
+    }
+
     @Test
     public void outboundPorts_asObject_ParsingTest() {
         String yaml = """
@@ -4444,6 +4627,7 @@ public class YamlConfigBuilderTest extends AbstractConfigBuilderTest {
                     base-dir: /mnt/cp-data
                     data-load-timeout-seconds: 30
                     cp-member-priority: -1
+                    auto-step-down-when-leader: true
                     map-limit: 25
                     raft-algorithm:
                       leader-election-timeout-in-millis: 500
@@ -4468,8 +4652,10 @@ public class YamlConfigBuilderTest extends AbstractConfigBuilderTest {
                     maps:
                       map1:
                         max-size-mb: 1
+                        purge-enabled: true
                       map2:
                         max-size-mb: 2
+                        purge-enabled: false
                 """;
         Config config = buildConfig(yaml);
         CPSubsystemConfig cpSubsystemConfig = config.getCPSubsystemConfig();
@@ -4511,9 +4697,12 @@ public class YamlConfigBuilderTest extends AbstractConfigBuilderTest {
         assertNotNull(mapConfig2);
         assertEquals("map1", mapConfig1.getName());
         assertEquals(1, mapConfig1.getMaxSizeMb());
+        assertTrue(mapConfig1.isPurgeEnabled());
         assertEquals("map2", mapConfig2.getName());
         assertEquals(2, mapConfig2.getMaxSizeMb());
+        assertFalse(mapConfig2.isPurgeEnabled());
         assertEquals(25, cpSubsystemConfig.getCPMapLimit());
+        assertTrue(cpSubsystemConfig.isAutoStepDownWhenLeader());
     }
 
     @Override

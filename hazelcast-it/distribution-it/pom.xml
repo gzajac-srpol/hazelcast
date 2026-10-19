@@ -10,13 +10,15 @@
     </parent>
 
     <artifactId>distribution-it</artifactId>
+    <name>distribution-it</name>
+    <description>Hazelcast Distribution Integration Tests</description>
+    <url>https://www.hazelcast.com/</url>
 
     <properties>
         <jaxb.version>2.3.1</jaxb.version>
         <jaxb-core.version>3.0.2</jaxb-core.version>
         <activation.version>1.1.1</activation.version>
         <hsqldb.version>2.7.4</hsqldb.version>
-        <hibernate-core.version>5.6.15.Final</hibernate-core.version>
         <!-- needed for CheckStyle -->
         <main.basedir>${project.parent.basedir}/..</main.basedir>
     </properties>
@@ -34,9 +36,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.hibernate</groupId>
+            <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
-            <version>${hibernate-core.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -114,6 +115,12 @@
                         <artifactId>hazelcast-distribution</artifactId>
                         <version>${project.version}</version>
                         <type>zip</type>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>*</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                     </dependency>
                 </dependencies>
             </plugin>

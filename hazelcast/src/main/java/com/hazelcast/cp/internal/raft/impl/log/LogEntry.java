@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,10 @@ import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
- * Represents an entry in the {@link RaftLog}.
+ * Represents an entry in the {@code RaftLog}.
  * Each log entry stores a state machine command along with the term number
  * when the entry was received by the leader. The term numbers in log entries
  * are used to detect inconsistencies between logs. Each log entry also has
@@ -99,5 +100,22 @@ public class LogEntry implements IdentifiedDataSerializable {
     @Override
     public String toString() {
         return "LogEntry{" + "term=" + term + ", index=" + index + ", operation=" + operation + '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        LogEntry logEntry = (LogEntry) o;
+        return term == logEntry.term && index == logEntry.index && Objects.equals(operation, logEntry.operation);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(term, index, operation);
     }
 }

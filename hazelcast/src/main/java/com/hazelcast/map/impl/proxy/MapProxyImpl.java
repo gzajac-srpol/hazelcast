@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import com.hazelcast.config.MapConfig;
 import com.hazelcast.core.EntryView;
 import com.hazelcast.core.ManagedContext;
 import com.hazelcast.internal.journal.EventJournalInitialSubscriberState;
-import com.hazelcast.internal.journal.EventJournalReader;
 import com.hazelcast.internal.namespace.NamespaceUtil;
 import com.hazelcast.internal.serialization.Data;
 import com.hazelcast.internal.serialization.impl.SerializationUtil;
@@ -110,7 +109,7 @@ import static java.util.Collections.emptyMap;
  * @param <V> the value type of map.
  */
 @SuppressWarnings({"checkstyle:classfanoutcomplexity", "checkstyle:ClassDataAbstractionCoupling", "MethodCount"})
-public class MapProxyImpl<K, V> extends MapProxySupport<K, V> implements EventJournalReader<EventJournalMapEvent<K, V>> {
+public class MapProxyImpl<K, V> extends MapProxySupport<K, V> {
 
     public MapProxyImpl(String name, MapService mapService, NodeEngine nodeEngine, MapConfig mapConfig) {
         super(name, mapService, nodeEngine, mapConfig);
@@ -394,15 +393,18 @@ public class MapProxyImpl<K, V> extends MapProxySupport<K, V> implements EventJo
                 putAsyncInternal(key, valueData, ttl, ttlUnit, maxIdle, maxIdleUnit));
     }
 
+    @Override
     public InternalCompletableFuture<V> putIfAbsentAsync(@Nonnull K key, @Nonnull V value) {
         return putIfAbsentAsync(key, value, UNSET, TimeUnit.MILLISECONDS);
     }
 
+    @Override
     public InternalCompletableFuture<V> putIfAbsentAsync(@Nonnull K key, @Nonnull V value,
-                                                    long ttl, @Nonnull TimeUnit timeunit) {
+                                                         long ttl, @Nonnull TimeUnit timeunit) {
         return putIfAbsentAsync(key, value, ttl, timeunit, UNSET, TimeUnit.MILLISECONDS);
     }
 
+    @Override
     public InternalCompletableFuture<V> putIfAbsentAsync(@Nonnull K key, @Nonnull V value,
                                                          long ttl, @Nonnull TimeUnit timeunit,
                                                          long maxIdle, @Nonnull TimeUnit maxIdleUnit) {
@@ -823,7 +825,7 @@ public class MapProxyImpl<K, V> extends MapProxySupport<K, V> implements EventJo
         return transformToSetWithNamespace(result, predicate, iterationType, uniqueResult, false);
     }
 
-    private <T> Set<T>  transformToSetWithNamespace(QueryResult result, Predicate predicate,
+    private <T> Set<T> transformToSetWithNamespace(QueryResult result, Predicate predicate,
                                             IterationType iterationType, boolean unique, boolean binary) {
         return NamespaceUtil.callWithNamespace(getNodeEngine(), mapConfig.getUserCodeNamespace(),
                 () -> transformToSet(serializationService, result, predicate, iterationType, unique, binary));

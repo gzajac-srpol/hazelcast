@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,15 @@
 
 package com.hazelcast.map.impl.recordstore;
 
+import com.hazelcast.config.InMemoryFormat;
+import com.hazelcast.core.HazelcastJsonValue;
 import com.hazelcast.internal.serialization.Data;
 import com.hazelcast.internal.serialization.SerializationService;
 import com.hazelcast.map.impl.MetadataInitializer;
 import com.hazelcast.map.impl.record.Record;
 import com.hazelcast.query.impl.JsonMetadata;
 import com.hazelcast.query.impl.Metadata;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import tools.jackson.core.JacksonException;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -41,13 +43,16 @@ public class JsonMetadataMutationObserver implements MutationObserver<Record> {
     private final SerializationService serializationService;
     private final MetadataInitializer metadataInitializer;
     private final JsonMetadataStore metadataStore;
+    private final InMemoryFormat inMemoryFormat;
 
     public JsonMetadataMutationObserver(SerializationService serializationService,
                                         MetadataInitializer metadataInitializer,
-                                        JsonMetadataStore metadataStore) {
+                                        JsonMetadataStore metadataStore,
+                                        InMemoryFormat inMemoryFormat) {
         this.serializationService = serializationService;
         this.metadataInitializer = metadataInitializer;
         this.metadataStore = metadataStore;
+        this.inMemoryFormat = inMemoryFormat;
     }
 
     @Override
@@ -119,17 +124,34 @@ public class JsonMetadataMutationObserver implements MutationObserver<Record> {
         }
     }
 
-    @SuppressFBWarnings("NP_LOAD_OF_KNOWN_NULL_VALUE")
     private void updateValueMetadataIfNecessary(Data dataKey,
                                                 Object updateValue) {
         Object valueMetadata = null;
         try {
-            if (updateValue instanceof Data data) {
-                valueMetadata = metadataInitializer.createFromData(data);
-            } else {
-                valueMetadata = metadataInitializer.createFromObject(updateValue);
-            }
-        } catch (IOException e) {
+            // in some cases (eg. entry processors) observers are invoked before new value is serialized
+            // but the JSON metadata must agree with final form of the data stored in the IMap
+            // (see JsonSchemaHelper.getTokenLocation)
+            valueMetadata = switch (inMemoryFormat) {
+                case OBJECT -> {
+                    // deserialize only JSON, other types would be ignored anyway, so we can pass Data
+                    var valueObject = updateValue instanceof Data serializedData && serializedData.isJson()
+                            ? serializationService.toObject(updateValue)
+                            : updateValue;
+                    yield metadataInitializer.createFromObject(valueObject);
+                }
+
+                case BINARY, NATIVE -> {
+                    if (updateValue instanceof Data valueData) {
+                        yield metadataInitializer.createFromData(valueData);
+                    } else if (updateValue instanceof HazelcastJsonValue) {
+                        // serialize only HazelcastJsonValue, other types would be ignored
+                        yield metadataInitializer.createFromData(serializationService.toData(updateValue));
+                    } else {
+                        yield null;
+                    }
+                }
+            };
+        } catch (JacksonException e) {
             // silently ignore exception. Json string is allowed to be invalid.
             ignore(e);
         } catch (Exception e) {
@@ -153,7 +175,7 @@ public class JsonMetadataMutationObserver implements MutationObserver<Record> {
                 return metadata;
             }
             return null;
-        } catch (IOException e) {
+        } catch (IOException | JacksonException e) {
             // silently ignore exception. Json string is allowed to be invalid.
             return null;
         } catch (Exception e) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,6 @@ public interface PacketFilter {
      * Filters a packet inspecting its content and/or endpoint and decides
      * whether this packet should be filtered.
      *
-     * @param packet   packet
      * @param endpoint target endpoint which packet is sent to
      * @return returns An {@link Action} to denote whether packet should pass through intact,
      * or should be rejected/dropped/delayed

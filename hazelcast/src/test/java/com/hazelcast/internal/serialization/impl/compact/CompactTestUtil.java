@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,14 @@
 package com.hazelcast.internal.serialization.impl.compact;
 
 import com.hazelcast.config.CompactSerializationConfig;
+import com.hazelcast.config.JavaSerializationFilterConfig;
 import com.hazelcast.config.SerializationConfig;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.internal.serialization.Data;
 import com.hazelcast.internal.serialization.InternalSerializationService;
 import com.hazelcast.internal.serialization.SerializationService;
 import com.hazelcast.internal.serialization.impl.DefaultSerializationServiceBuilder;
+import com.hazelcast.internal.serialization.impl.ExtraReflectiveCompactSerializationRestrictions;
 import com.hazelcast.nio.serialization.compact.CompactSerializer;
 import com.hazelcast.nio.serialization.genericrecord.GenericRecord;
 import com.hazelcast.nio.serialization.genericrecord.GenericRecordBuilder;
@@ -34,6 +36,7 @@ import example.serialization.MainDTO;
 import example.serialization.NamedDTO;
 import example.serialization.AllFieldsDTO;
 import example.serialization.SerializableEmployeeDTO;
+import org.assertj.core.api.Assertions;
 
 import javax.annotation.Nonnull;
 import java.math.BigDecimal;
@@ -324,13 +327,9 @@ public final class CompactTestUtil {
      * reflective serializer.
      */
     public static Iterable<Schema> getSchemasFor(Class<?>... classes) {
-        CompactStreamSerializer compactStreamSerializer =
-                new CompactStreamSerializer(null, new CompactSerializationConfig(), null, null, null) {
-                    @Override
-                    public boolean canBeSerializedAsCompact(Class<?> clazz) {
-                        return true;
-                    }
-                };
+        CompactStreamSerializer compactStreamSerializer = new CompactStreamSerializer(cls -> CompactStreamSerializerAdapter.class,
+                new CompactSerializationConfig(), null, null, null,
+                ExtraReflectiveCompactSerializationRestrictions.NO_RESTRICTIONS);
         ReflectiveCompactSerializer serializer = new ReflectiveCompactSerializer(compactStreamSerializer);
 
         return Arrays.stream(classes)
@@ -348,4 +347,7 @@ public final class CompactTestUtil {
                      })::iterator;
     }
 
+    public static void assertZeroConfigFilter(SerializationConfig actual, JavaSerializationFilterConfig expected) {
+        Assertions.assertThat(actual.getCompactSerializationConfig().getZeroConfigFilter()).isEqualTo(expected);
+    }
 }

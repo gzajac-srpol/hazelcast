@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,10 @@ package com.hazelcast.internal.diagnostics;
 import com.hazelcast.auditlog.AuditlogService;
 import com.hazelcast.auditlog.AuditlogTypeIds;
 import com.hazelcast.config.Config;
+import com.hazelcast.config.InvalidConfigurationException;
 import com.hazelcast.internal.management.ManagementCenterService;
 import com.hazelcast.internal.management.events.DiagnosticsConfigUpdatedEvent;
+import com.hazelcast.spi.impl.NodeEngineThreadLocalContext;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.logging.LoggingService;
 import com.hazelcast.spi.impl.NodeEngine;
@@ -201,7 +203,7 @@ public class Diagnostics {
     private String baseFileNameWithTime;
     private DiagnosticsOutputType outputType;
     private DiagnosticsConfig config = new DiagnosticsConfig();
-    private File loggingDirectory;
+    private File loggingDirectory = new File(DIRECTORY.getDefaultValue());
     private String filePrefix;
     private boolean includeEpochTime;
     private float maxRollingFileSizeMB;
@@ -212,6 +214,7 @@ public class Diagnostics {
     private final Object lifecycleLock = new Object();
     private final AuditlogService auditlogService;
     private NodeEngine nodeEngine;
+    private final DiagnosticsMetricCollector metricCollector = new DiagnosticsMetricCollector();
 
     public Diagnostics(String baseFileName, LoggingService loggingService, String hzName,
                        HazelcastProperties properties) {
@@ -264,6 +267,10 @@ public class Diagnostics {
 
     public int getMaxRollingFileCount() {
         return maxRollingFileCount;
+    }
+
+    public DiagnosticsMetricCollector getMetricCollector() {
+        return metricCollector;
     }
 
     // just for testing (returns the current file the system is writing to)
@@ -389,6 +396,8 @@ public class Diagnostics {
         long startedTime = currentTimeMillis();
         baseFileNameWithTime = baseFileName + "-" + startedTime;
         Instant startedTimeInstant = Instant.ofEpochMilli(startedTime);
+        this.diagnosticsLog = newLog(this);
+
         String message = format("Diagnostics started at [%s]-[%s] with configuration %s", startedTime,
                 startedTimeInstant.atZone(ZoneOffset.UTC), config);
         logger.info(message);
@@ -400,7 +409,6 @@ public class Diagnostics {
                     .log();
         }
 
-        this.diagnosticsLog = newLog(this);
         this.scheduler = Executors.newSingleThreadScheduledExecutor(
                 new DiagnosticSchedulerThreadFactory("DiagnosticsSchedulerThread"));
         scheduleAutoOff();
@@ -463,7 +471,6 @@ public class Diagnostics {
             closeLog();
 
             setConfig0(diagnosticsConfig);
-            emitMCConfigUpdatedEvent();
 
             if (status.get() == SERVICE_DISABLED) {
                 logger.info("Diagnostics disabled. To enable, set over Management Center or Operator.");
@@ -475,11 +482,35 @@ public class Diagnostics {
                 }
                 // if the service is disabled, no need to wait for the auto off timer
                 cancelAutoOffFuture("Reason: Diagnostics service is disabled.");
+                emitMCConfigUpdatedEvent();
                 return;
             }
 
+            startOrFail(diagnosticsConfig);
+            emitMCConfigUpdatedEvent();
+            scheduleRegisteredPlugins();
+
+        }
+    }
+
+    private void startOrFail(DiagnosticsConfig diagnosticsConfig) {
+        try {
             start();
             scheduleRegisteredPlugins();
+            metricCollector.incrementDynamicallyEnabledCount();
+        } catch (InvalidConfigurationException t) {
+            // if the diagnostics service cannot be started, it will be disabled
+            logger.warning("Diagnostics service cannot be started with the provided configuration: "
+                    + diagnosticsConfig, t);
+            this.status.set(SERVICE_DISABLED);
+            this.config.setEnabled(false);
+            if (auditlogService != null) {
+                auditlogService.eventBuilder(AuditlogTypeIds.DIAGNOSTICS_LOGGING_DISABLE)
+                        .message("Diagnostics disabled due to invalid configuration")
+                        .addParameter("DiagnosticsConfig", config)
+                        .log();
+            }
+            throw t;
         }
     }
 
@@ -755,6 +786,7 @@ public class Diagnostics {
                     DiagnosticsConfig dConfig = new DiagnosticsConfig(config);
                     dConfig.setEnabled(false);
                     setConfig(dConfig);
+                    metricCollector.incrementAutoOffDisabledCount();
                     break;
                 } catch (Exception e) {
                     tryCount++;
@@ -856,7 +888,11 @@ public class Diagnostics {
 
         @Override
         public Thread newThread(Runnable target) {
-            return new Thread(target, createThreadName(hzName, name));
+            Runnable overriddenTarget = () -> {
+                NodeEngineThreadLocalContext.declareNodeEngineReference(nodeEngine);
+                target.run();
+            };
+            return new Thread(overriddenTarget, createThreadName(hzName, name));
         }
     }
 }

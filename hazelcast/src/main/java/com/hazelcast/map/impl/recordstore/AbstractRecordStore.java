@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ abstract class AbstractRecordStore implements RecordStore<Record> {
         // Add observer for json metadata
         if (mapContainer.getMapConfig().getMetadataPolicy() == MetadataPolicy.CREATE_ON_UPDATE) {
             mutationObserver.add(new JsonMetadataMutationObserver(serializationService,
-                    JsonMetadataInitializer.INSTANCE, getOrCreateMetadataStore()));
+                    JsonMetadataInitializer.INSTANCE, getOrCreateMetadataStore(), inMemoryFormat));
         }
 
         // Add observer for indexing

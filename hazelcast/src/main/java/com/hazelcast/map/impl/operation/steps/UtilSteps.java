@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import com.hazelcast.map.impl.recordstore.RecordStore;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.spi.impl.operationservice.BackupOperation;
 import com.hazelcast.spi.impl.operationservice.impl.OperationRunnerImpl;
-import com.hazelcast.spi.impl.operationservice.impl.OperationServiceImpl;
 
 import java.util.function.Consumer;
 
@@ -137,12 +136,16 @@ public enum UtilSteps implements IMapOpStep {
         @Override
         public void runStep(State state) {
             RecordStore recordStore = state.getRecordStore();
-            state.setSizeBefore(recordStore.size());
+            if (recordStore != null) {
+                state.setSizeBefore(recordStore.size());
+            }
 
             MapOperation op = state.getOperation();
             op.runInternalDirect();
 
-            state.setSizeAfter(recordStore.size());
+            if (recordStore != null) {
+                state.setSizeAfter(recordStore.size());
+            }
         }
 
         @Override
@@ -151,11 +154,10 @@ public enum UtilSteps implements IMapOpStep {
         }
     };
 
-
     public static OperationRunnerImpl getPartitionOperationRunner(State state) {
         MapOperation operation = state.getOperation();
-        return (OperationRunnerImpl) ((OperationServiceImpl) operation.getNodeEngine()
-                .getOperationService()).getOperationExecutor()
+        return (OperationRunnerImpl) operation.getNodeEngine()
+                .getOperationService().getOperationExecutor()
                 .getPartitionOperationRunners()[state.getPartitionId()];
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package com.hazelcast.internal.serialization.impl.compact.record;
 
+import com.hazelcast.config.SerializationConfig;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import static com.hazelcast.test.HazelcastTestSupport.addToCompactSerializationAllowList;
 
 public record AllTypesRecord(
         byte primitiveInt8,
@@ -96,6 +100,10 @@ public record AllTypesRecord(
         public static NestedRecord create() {
             return new NestedRecord(42, "42");
         }
+    }
+
+    public static void addToAllowList(SerializationConfig config) {
+        addToCompactSerializationAllowList(config, AllTypesRecord.class, NestedRecord.class);
     }
 
     public static AllTypesRecord create() {

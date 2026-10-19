@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,6 @@ import org.junit.Test;
 import org.junit.runners.Parameterized;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -73,7 +72,7 @@ public abstract class AbstractListenersOnReconnectTest extends ClientTestSupport
     private final AtomicInteger eventCount = new AtomicInteger();
     private final TestHazelcastFactory factory = new TestHazelcastFactory();
     private CountDownLatch eventsLatch = new CountDownLatch(1);
-    private final Set<String> events = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<String> events = ConcurrentHashMap.newKeySet();
     private UUID registrationId;
     protected ClientConfig clientConfig;
     protected HazelcastInstance client;

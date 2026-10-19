@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,4 +50,9 @@ public final class TestedVersions {
 
     private static final String TEST_NEO4J_VERSION = System.getProperty("test.neo4j.version", "5.5.0");
     public static final DockerImageName TEST_NEO4J_IMAGE = DockerImageName.parse("neo4j:" + TEST_NEO4J_VERSION);
+
+    public static final DockerImageName LOCALSTACK_IMAGE = DockerImageName.parse("localstack/localstack:4");
+
+    public static final DockerImageName PULSAR_4_IMAGE = DockerImageName.parse("apachepulsar/pulsar:4.2.3");
+    public static final DockerImageName PULSAR_5_IMAGE = DockerImageName.parse("apachepulsar/pulsar:5.0.0-M2");
 }

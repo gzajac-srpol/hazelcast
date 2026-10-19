@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import com.hazelcast.cluster.Member;
 import com.hazelcast.cluster.MembershipEvent;
 import com.hazelcast.cluster.impl.MemberImpl;
 import com.hazelcast.core.HazelcastException;
+import com.hazelcast.cp.internal.RaftService;
 import com.hazelcast.cp.internal.RaftServiceUtil;
 import com.hazelcast.instance.impl.Node;
 import com.hazelcast.internal.cluster.Joiner;
@@ -46,9 +47,6 @@ import com.hazelcast.spi.impl.operationservice.Operation;
 import com.hazelcast.spi.properties.ClusterProperty;
 import com.hazelcast.spi.properties.HazelcastProperties;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -118,7 +116,7 @@ public class MembershipManager {
      */
     private final AtomicReference<Map<Object, MemberImpl>> missingMembersRef = new AtomicReference<>(Collections.emptyMap());
 
-    private final Set<MemberImpl> suspectedMembers = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<MemberImpl> suspectedMembers = ConcurrentHashMap.newKeySet();
     private final int mastershipClaimTimeoutSeconds;
     private final boolean partialDisconnectionDetectionEnabled;
     private final PartialDisconnectionHandler partialDisconnectionHandler;
@@ -525,7 +523,7 @@ public class MembershipManager {
 
             MemberMap memberMap = getMemberMap();
             Address masterAddress = clusterService.getMasterAddress();
-            if (memberMap.isBeforeThan(member.getAddress(), masterAddress)) {
+            if (masterAddress != null && memberMap.isBeforeThan(member.getAddress(), masterAddress)) {
                 if (logger.isFineEnabled()) {
                     logger.fine("Not removing suspicion of %s since it is before than current master %s in member list.",
                             member, masterAddress);
@@ -550,7 +548,7 @@ public class MembershipManager {
             Address masterAddress = clusterService.getMasterAddress();
             int memberListVersion = getMemberListVersion();
 
-            if (!(masterAddress.equals(caller) && memberListVersion == callerMemberListVersion)) {
+            if (masterAddress == null || !(masterAddress.equals(caller) && memberListVersion == callerMemberListVersion)) {
                 if (logger.isFineEnabled()) {
                     logger.fine("Ignoring explicit suspicion trigger for " + suspectedMembersViewMetadata
                             + ". Caller: " + caller + ", caller member list version: " + callerMemberListVersion
@@ -570,6 +568,16 @@ public class MembershipManager {
         clusterServiceLock.lock();
         try {
             MembersViewMetadata localMembersViewMetadata = createLocalMembersViewMetadata();
+            // During cluster state transitions (split-brain merge, master failover, etc.), this node may temporarily have
+            // no master address set. In this transitional state, processing explicit suspicions could lead to incorrect
+            // member removals. Instead, we log and ignore the suspicion; it should clear up once a master is selected
+            if (localMembersViewMetadata.getMasterAddress() == null) {
+                if (logger.isFineEnabled()) {
+                    logger.fine("Ignoring explicit suspicion from " + suspectedAddress + " - no master address defined"
+                            + ". Expected: " + expectedMembersViewMetadata + ", Local: " + localMembersViewMetadata);
+                }
+                return;
+            }
             if (!localMembersViewMetadata.equals(expectedMembersViewMetadata)) {
                 if (logger.isFineEnabled()) {
                     logger.fine("Ignoring explicit suspicion of " + suspectedAddress
@@ -978,7 +986,8 @@ public class MembershipManager {
                     EmptyStatement.ignore(ignored);
                 } catch (TimeoutException ignored) {
                     MemberInfo latestMemberInfo = latestMembersView.getMember(address);
-                    MemberImpl memberImpl = new MemberImpl(member.getAddress(), member.getVersion(), false, member.getUuid());
+                    MemberImpl memberImpl = new MemberImpl(member.getAddress(), member.getVersion(),
+                            false, member.getUuid());
                     if (mastershipClaimTimeout > 0 && !isMemberSuspected(memberImpl) && latestMemberInfo != null) {
                         // we don't suspect from 'address' and we need to learn its response
                         done = false;
@@ -1008,7 +1017,8 @@ public class MembershipManager {
         for (MemberInfo member : membersView.getMembers()) {
             Address memberAddress = member.getAddress();
             if (!(node.getThisAddress().equals(memberAddress)
-                    || isMemberSuspected(new MemberImpl(member.getAddress(), member.getVersion(), false, member.getUuid()))
+                    || isMemberSuspected(new MemberImpl(member.getAddress(), member.getVersion(), false,
+                    member.getUuid()))
                     || futures.containsKey(member))) {
                 // this is a new member for us - let's ask its members view
                 if (logger.isFineEnabled()) {
@@ -1094,24 +1104,13 @@ public class MembershipManager {
     }
 
     private void removeFromCPMissingMembers(MembersView membersView) {
-        Object raftService;
+        RaftService raftService;
         try {
             raftService = nodeEngine.getService(RaftServiceUtil.SERVICE_NAME);
         } catch (HazelcastException e) {
             return;
         }
-
-        List<MemberInfo> membersInfo = membersView.getMembers();
-
-        // Lookup to invoke EE RaftService#removeFromMissingMembers method
-        MethodHandles.Lookup publicLookup = MethodHandles.publicLookup();
-        MethodType mt = MethodType.methodType(void.class, List.class);
-        try {
-            MethodHandle removeFromMissingMembers = publicLookup.bind(raftService, "removeFromMissingMembers", mt);
-            removeFromMissingMembers.invoke(membersInfo);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
+        raftService.removeFromMissingMembers(membersView.getMembers());
     }
 
     private boolean isHotRestartEnabled() {

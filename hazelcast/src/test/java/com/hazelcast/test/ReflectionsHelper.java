@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ public final class ReflectionsHelper {
      * from multi-release JARs, which has prefix {@code META-INF/versions/{n}/}.
      *
      * @see JarFile#getJarEntry
-     * @see <a href="https://openjdk.org/jeps/238"> JEP 238: Multi-Release JAR Files
+     * @see <a href="https://openjdk.org/jeps/238">JEP 238: Multi-Release JAR Files</a>
      */
     private static final Pattern VERSIONED_CLASS_PREFIX = Pattern.compile("META-INF/versions/\\d+/$");
 

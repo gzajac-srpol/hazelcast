@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -125,6 +125,7 @@ class AwsEcsApi {
 
     private List<Task> parseDescribeTasks(String response) {
         return toStream(toJson(response).get("tasks"))
+                .filter(this::isLastStatusRunning)
                 .filter(this::filterByTags)
                 .flatMap(e -> toTask(e).map(Stream::of).orElseGet(Stream::empty))
                 .collect(Collectors.toList());
@@ -179,6 +180,11 @@ class AwsEcsApi {
 
     private static Stream<JsonValue> toStream(JsonValue json) {
         return StreamSupport.stream(json.asArray().spliterator(), false);
+    }
+
+    private boolean isLastStatusRunning(JsonValue taskJson) {
+        String lastStatus = taskJson.asObject().getString("lastStatus", "");
+        return "RUNNING".equals(lastStatus);
     }
 
     private boolean filterByTags(JsonValue taskJson) {

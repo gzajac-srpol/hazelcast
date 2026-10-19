@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -138,7 +138,7 @@ import com.hazelcast.core.EntryListener;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.crdt.pncounter.PNCounter;
 import com.hazelcast.flakeidgen.FlakeIdGenerator;
-import com.hazelcast.instance.impl.HazelcastInstanceFactory;
+import com.hazelcast.internal.serialization.impl.compact.CompactTestUtil;
 import com.hazelcast.jet.JetService;
 import com.hazelcast.jet.config.EdgeConfig;
 import com.hazelcast.jet.config.JetConfig;
@@ -156,7 +156,6 @@ import com.hazelcast.nio.ssl.SSLContextFactory;
 import com.hazelcast.replicatedmap.ReplicatedMap;
 import com.hazelcast.ringbuffer.RingbufferStore;
 import com.hazelcast.ringbuffer.RingbufferStoreFactory;
-import com.hazelcast.spi.properties.ClusterProperty;
 import com.hazelcast.splitbrainprotection.SplitBrainProtectionOn;
 import com.hazelcast.splitbrainprotection.impl.ProbabilisticSplitBrainProtectionFunction;
 import com.hazelcast.splitbrainprotection.impl.RecentlyActiveSplitBrainProtectionFunction;
@@ -164,13 +163,10 @@ import com.hazelcast.spring.serialization.DummyCompactSerializer;
 import com.hazelcast.spring.serialization.DummyDataSerializableFactory;
 import com.hazelcast.spring.serialization.DummyPortableFactory;
 import com.hazelcast.spring.serialization.DummyReflectiveSerializable;
-import com.hazelcast.test.HazelcastTestSupport;
 import com.hazelcast.topic.ITopic;
 import com.hazelcast.topic.TopicOverloadPolicy;
 import com.hazelcast.wan.WanPublisher;
 import com.hazelcast.wan.WanPublisherState;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -216,8 +212,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @ExtendWith({SpringExtension.class, CustomSpringExtension.class})
 @ContextConfiguration(locations = {"fullConfig-applicationContext-hazelcast.xml"})
-@SuppressWarnings("unused")
-public class TestFullApplicationContext extends HazelcastTestSupport {
+@SuppressWarnings({"unused", "removal"})
+public class TestFullApplicationContext {
 
     public static final String INTERNAL_JET_OBJECTS_PREFIX = "__jet.";
 
@@ -304,21 +300,6 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
 
     @Autowired
     private PNCounter pnCounter;
-
-    @BeforeAll
-    static void start() {
-        // OverridePropertyRule can't be used here since the Spring context
-        // with the Hazelcast instance is created before the rules
-        System.clearProperty(ClusterProperty.METRICS_COLLECTION_FREQUENCY.getName());
-        HazelcastInstanceFactory.terminateAll();
-    }
-
-
-    @AfterAll
-    static void stop() {
-        HazelcastInstanceFactory.terminateAll();
-        System.setProperty(ClusterProperty.METRICS_COLLECTION_FREQUENCY.getName(), "1");
-    }
 
     @BeforeEach
     void before() {
@@ -658,13 +639,13 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
         final PermissionConfig pnCounterPermission = new PermissionConfig(PermissionType.PN_COUNTER, "pnCounterPermission", "*")
                 .addAction("create")
                 .setEndpoints(Collections.emptySet());
-        assertContains(clientPermissionConfigs, pnCounterPermission);
+        assertThat(clientPermissionConfigs).contains(pnCounterPermission);
 
         PermissionConfig queuePermission = new PermissionConfig(PermissionType.QUEUE, "*", "*")
                 .addAction("all");
-        assertNotContains(clientPermissionConfigs, queuePermission);
+        assertThat(clientPermissionConfigs).doesNotContain(queuePermission);
         queuePermission.setDeny(true);
-        assertContains(clientPermissionConfigs, queuePermission);
+        assertThat(clientPermissionConfigs).contains(queuePermission);
 
         Set<PermissionType> permTypes = new HashSet<>(Arrays.asList(PermissionType.values()));
         for (PermissionConfig pc : clientPermissionConfigs) {
@@ -952,13 +933,13 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
     }
 
     private void assertDiscoveryConfig(DiscoveryConfig discoveryConfig) {
-        assertInstanceOf(DummyDiscoveryServiceProvider.class, discoveryConfig.getDiscoveryServiceProvider());
-        assertInstanceOf(DummyNodeFilter.class, discoveryConfig.getNodeFilter());
+        assertThat(discoveryConfig.getDiscoveryServiceProvider()).isInstanceOf(DummyDiscoveryServiceProvider.class);
+        assertThat(discoveryConfig.getNodeFilter()).isInstanceOf(DummyNodeFilter.class);
         List<DiscoveryStrategyConfig> discoveryStrategyConfigs
                 = (List<DiscoveryStrategyConfig>) discoveryConfig.getDiscoveryStrategyConfigs();
         assertEquals(2, discoveryStrategyConfigs.size());
         DiscoveryStrategyConfig discoveryStrategyConfig = discoveryStrategyConfigs.get(0);
-        assertInstanceOf(DummyDiscoveryStrategyFactory.class, discoveryStrategyConfig.getDiscoveryStrategyFactory());
+        assertThat(discoveryStrategyConfig.getDiscoveryStrategyFactory()).isInstanceOf(DummyDiscoveryStrategyFactory.class);
         assertEquals(3, discoveryStrategyConfig.getProperties().size());
         assertEquals("foo", discoveryStrategyConfig.getProperties().get("key-string"));
         assertEquals("123", discoveryStrategyConfig.getProperties().get("key-int"));
@@ -1076,7 +1057,7 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
     void testWanConsumerWithPersistDataFalse() {
         WanReplicationConfig config2 = config.getWanReplicationConfig("testWan2");
         WanConsumerConfig consumerConfig2 = config2.getConsumerConfig();
-        assertInstanceOf(DummyWanConsumer.class, consumerConfig2.getImplementation());
+        assertThat(consumerConfig2.getImplementation()).isInstanceOf(DummyWanConsumer.class);
         assertFalse(consumerConfig2.isPersistWanReplicatedData());
     }
 
@@ -1094,7 +1075,7 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
         final Map<String, Comparable> consumerProps = new HashMap<>();
         consumerProps.put("custom.prop.consumer", "prop.consumer");
         consumerConfig.setProperties(consumerProps);
-        assertInstanceOf(DummyWanConsumer.class, consumerConfig.getImplementation());
+        assertThat(consumerConfig.getImplementation()).isInstanceOf(DummyWanConsumer.class);
         assertEquals("prop.consumer", consumerConfig.getProperties().get("custom.prop.consumer"));
         assertFalse(consumerConfig.isPersistWanReplicatedData());
 
@@ -1233,6 +1214,13 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
         String compactSerializerClassName = DummyCompactSerializer.class.getName();
         assertThat(serializerClassNames)
                 .contains(compactSerializerClassName);
+
+        JavaSerializationFilterConfig expectedFilter = new JavaSerializationFilterConfig()
+                .setDefaultsDisabled(true)
+                .setBlacklist(new ClassFilter().addClasses("com.hz.ClassA").addPackages("com.hz.a").addPrefixes("com.hz.a.other."))
+                .setWhitelist(new ClassFilter().addClasses("com.hz.ClassB").addPackages("com.hz.b").addPrefixes("com.hazelcast"));
+
+        CompactTestUtil.assertZeroConfigFilter(config.getSerializationConfig(), expectedFilter);
     }
 
     @Test
@@ -1311,7 +1299,8 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
         assertNotNull(probabilisticSplitBrainProtectionConfig);
         assertEquals("probabilistic-split-brain-protection", probabilisticSplitBrainProtectionConfig.getName());
         assertNotNull(probabilisticSplitBrainProtectionConfig.getFunctionImplementation());
-        assertInstanceOf(ProbabilisticSplitBrainProtectionFunction.class, probabilisticSplitBrainProtectionConfig.getFunctionImplementation());
+
+        assertThat(probabilisticSplitBrainProtectionConfig.getFunctionImplementation()).isInstanceOf(ProbabilisticSplitBrainProtectionFunction.class);
         assertTrue(probabilisticSplitBrainProtectionConfig.isEnabled());
         assertEquals(3, probabilisticSplitBrainProtectionConfig.getMinimumClusterSize());
         assertEquals(2, probabilisticSplitBrainProtectionConfig.getListenerConfigs().size());
@@ -1334,7 +1323,7 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
         assertNotNull(recentlyActiveSplitBrainProtectionConfig);
         assertEquals("recently-active-split-brain-protection", recentlyActiveSplitBrainProtectionConfig.getName());
         assertNotNull(recentlyActiveSplitBrainProtectionConfig.getFunctionImplementation());
-        assertInstanceOf(RecentlyActiveSplitBrainProtectionFunction.class, recentlyActiveSplitBrainProtectionConfig.getFunctionImplementation());
+        assertThat(recentlyActiveSplitBrainProtectionConfig.getFunctionImplementation()).isInstanceOf(RecentlyActiveSplitBrainProtectionFunction.class);
         assertTrue(recentlyActiveSplitBrainProtectionConfig.isEnabled());
         assertEquals(5, recentlyActiveSplitBrainProtectionConfig.getMinimumClusterSize());
         assertEquals(SplitBrainProtectionOn.READ_WRITE, recentlyActiveSplitBrainProtectionConfig.getProtectOn());
@@ -1410,7 +1399,7 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
         assertEquals("AES/CBC/PKCS5Padding", encryptionAtRestConfig.getAlgorithm());
         assertEquals("sugar", encryptionAtRestConfig.getSalt());
         assertEquals(16, encryptionAtRestConfig.getKeySize());
-        assertInstanceOf(VaultSecureStoreConfig.class, encryptionAtRestConfig.getSecureStoreConfig());
+        assertThat(encryptionAtRestConfig.getSecureStoreConfig()).isInstanceOf(VaultSecureStoreConfig.class);
         VaultSecureStoreConfig vaultConfig = (VaultSecureStoreConfig) encryptionAtRestConfig.getSecureStoreConfig();
         assertEquals("http://localhost:1234", vaultConfig.getAddress());
         assertEquals("secret/path", vaultConfig.getSecretPath());
@@ -1579,7 +1568,6 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
         assertTrue(cpSubsystemConfig.isFailOnIndeterminateOperationState());
         assertFalse(cpSubsystemConfig.isPersistenceEnabled());
         assertEquals(new File("/custom-dir").getAbsolutePath(), cpSubsystemConfig.getBaseDir().getAbsolutePath());
-        assertEquals(-1, cpSubsystemConfig.getCPMemberPriority());
         RaftAlgorithmConfig raftAlgorithmConfig = cpSubsystemConfig.getRaftAlgorithmConfig();
         assertEquals(500, raftAlgorithmConfig.getLeaderElectionTimeoutInMillis());
         assertEquals(100, raftAlgorithmConfig.getLeaderHeartbeatPeriodInMillis());
@@ -1606,14 +1594,17 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
         CPMapConfig mapConfig1 = cpSubsystemConfig.findCPMapConfig("map1");
         assertNotNull(mapConfig1);
         assertEquals(50, mapConfig1.getMaxSizeMb());
+        assertFalse(mapConfig1.isPurgeEnabled());
 
         CPMapConfig mapConfig2 = cpSubsystemConfig.findCPMapConfig("map2");
         assertNotNull(mapConfig2);
         assertEquals(75, mapConfig2.getMaxSizeMb());
+        assertFalse(mapConfig2.isPurgeEnabled());
 
         CPMapConfig mapConfig3 = cpSubsystemConfig.findCPMapConfig("map3");
         assertNotNull(mapConfig3);
         assertEquals(100, mapConfig3.getMaxSizeMb());
+        assertFalse(mapConfig3.isPurgeEnabled());
     }
 
     @Test
@@ -1632,7 +1623,6 @@ public class TestFullApplicationContext extends HazelcastTestSupport {
         assertFalse(metricsConfig.getManagementCenterConfig().isEnabled());
         assertEquals(42, metricsConfig.getManagementCenterConfig().getRetentionSeconds());
         assertFalse(metricsConfig.getJmxConfig().isEnabled());
-        assertEquals(24, metricsConfig.getCollectionFrequencySeconds());
     }
 
     @Test

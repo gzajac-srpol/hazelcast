@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -576,7 +576,7 @@ public final class ClientConfigXmlGenerator {
                         classNameOrImplClass(discovery.getNodeFilterClass(), discovery.getNodeFilter()));
         for (DiscoveryStrategyConfig strategy : discovery.getDiscoveryStrategyConfigs()) {
             gen.open("discovery-strategy", "class", strategy.getClassName(), "enabled", true)
-                    .appendProperties(strategy.getProperties(), "properties")
+                    .appendProperties(strategy.getProperties())
                     .close();
         }
         gen.close();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2293,10 +2293,10 @@ public class ClientMapProxy<K, V> extends ClientProxy
     }
 
     /**
-     * Orchestrator method that invokes all the paritition in parallel to replace each entry's
+     * Orchestrator method that invokes all the partition in parallel to replace each entry's
      * value with the result of invoking the given function on that entry
      *
-     * @param function  remappingfunction
+     * @param function remapping function
      */
     protected void replaceAllInternal(BiFunction<? super K, ? super V, ? extends V> function) {
         if (SerializationUtil.isClassStaticAndSerializable(function) && !useDefaultReplaceAllOperation) {

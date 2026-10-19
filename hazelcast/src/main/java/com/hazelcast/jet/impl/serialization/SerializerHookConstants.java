@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ public final class SerializerHookConstants {
     /**
      * Start of reserved space for Jet-specific serializers.
      * Any ID greater than this number might be used by some other Hazelcast serializer.
-     * For more information, {@see SerializationConstants}
+     * For more information, see {@link SerializationConstants}
      */
     public static final int JET_RESERVED_SPACE_START = SerializationConstants.JET_SERIALIZER_FIRST;
 

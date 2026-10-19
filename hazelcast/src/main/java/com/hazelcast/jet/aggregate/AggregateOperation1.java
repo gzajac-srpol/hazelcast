@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ public interface AggregateOperation1<T, A, R> extends AggregateOperation<A, R> {
      * @deprecated see {@linkplain AggregateOperations#toCollector(AggregateOperation1)}
      */
     @Nonnull
-    @Deprecated
+    @Deprecated(forRemoval = true)
     default Collector<T, A, R> toCollector() {
         return AggregateOperations.toCollector(this);
     }

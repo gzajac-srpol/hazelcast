@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package com.hazelcast.jet.sql.impl.connector.jdbc;
 
+import com.hazelcast.config.Config;
+import com.hazelcast.config.JavaSerializationFilterConfig;
 import com.hazelcast.sql.HazelcastSqlException;
 import com.hazelcast.test.jdbc.H2DatabaseProvider;
 import org.junit.Before;
@@ -31,7 +33,11 @@ public class InsertJdbcSqlConnectorTest extends JdbcSqlTestSupport {
 
     @BeforeClass
     public static void beforeClass() {
-        initialize(new H2DatabaseProvider());
+        Config config = smallInstanceConfig();
+        JavaSerializationFilterConfig filterConfig = new JavaSerializationFilterConfig();
+        filterConfig.setDefaultsDisabled(true);
+        config.getSerializationConfig().setJavaSerializationFilterConfig(filterConfig);
+        initialize(new H2DatabaseProvider(), config);
     }
 
     @Before

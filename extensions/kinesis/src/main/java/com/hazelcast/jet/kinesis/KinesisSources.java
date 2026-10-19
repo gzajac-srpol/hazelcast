@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 
 package com.hazelcast.jet.kinesis;
 
-import com.amazonaws.services.kinesis.model.Record;
-import com.amazonaws.services.kinesis.model.Shard;
 import com.hazelcast.function.BiFunctionEx;
 import com.hazelcast.function.SupplierEx;
 import com.hazelcast.jet.kinesis.impl.AwsConfig;
@@ -28,6 +26,8 @@ import com.hazelcast.jet.pipeline.StreamSource;
 import com.hazelcast.jet.retry.IntervalFunction;
 import com.hazelcast.jet.retry.RetryStrategies;
 import com.hazelcast.jet.retry.RetryStrategy;
+import software.amazon.awssdk.services.kinesis.model.Record;
+import software.amazon.awssdk.services.kinesis.model.Shard;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -126,7 +126,7 @@ public final class KinesisSources {
      * tripped.
      * <p>
      * The source provides a metric called
-     * {@value MILLIS_BEHIND_LATEST_METRIC}, which specifies, for each
+     * {@value #MILLIS_BEHIND_LATEST_METRIC}, which specifies, for each
      * shard, the source is actively reading data from if there is any
      * delay in reading the data.
      *
@@ -299,10 +299,10 @@ public final class KinesisSources {
 
         /**
          * Specifies projection function, that will map input {@link Record}
-         * and {@link com.amazonaws.services.kinesis.model.Shard} from which this record was read into user-defined type.
+         * and {@link Shard} from which this record was read into user-defined type.
          * <p>
-         * If not provided, source will return {@code Map.Entry<String, byte[]>} with {@link Record#getPartitionKey()}
-         * as key and {@link Record#getData()} as value.
+         * If not provided, source will return {@code Map.Entry<String, byte[]>} with {@link Record#partitionKey()}
+         * as key and {@link Record#data()} as value.
          */
         @Nonnull
         @SuppressWarnings("unchecked") // here we base on Java's type erasure, that's why we use that casting
@@ -346,17 +346,27 @@ public final class KinesisSources {
 
         @Override
         public T applyEx(Record record, Shard shard) {
-            return (T) entry(record.getPartitionKey(), toArray(record));
+            return (T) entry(record.partitionKey(), toArray(record));
         }
 
         private static byte[] toArray(Record record) {
-            ByteBuffer buffer = record.getData();
+            ByteBuffer buffer = record.data().asByteBuffer();
             int position = buffer.position();
             int limit = buffer.limit();
-            if (position == 0 && limit == buffer.capacity()) {
-                return buffer.array();
+            byte[] array;
+
+            // Detect ReadOnly buffer
+            if (buffer.hasArray()) {
+                array = buffer.array();
             } else {
-                return Arrays.copyOfRange(buffer.array(), position, limit);
+                array = new byte[buffer.remaining()];
+                buffer.get(array);
+            }
+
+            if (position == 0 && limit == buffer.capacity()) {
+                return array;
+            } else {
+                return Arrays.copyOfRange(array, position, limit);
             }
         }
     }

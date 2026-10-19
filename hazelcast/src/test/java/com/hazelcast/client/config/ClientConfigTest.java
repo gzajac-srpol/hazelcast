@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -181,5 +181,11 @@ public class ClientConfigTest {
         assertTrue(tpcConfig.isEnabled());
         assertEquals(10, tpcConfig.getConnectionCount());
         assertThrows(IllegalArgumentException.class, () -> config.setTpcConfig(null));
+    }
+
+    @Test
+    public void testClusterName_throwExceptionWhenNull() {
+        ClientConfig clientConfig = new ClientConfig();
+        assertThrows(IllegalArgumentException.class, () -> clientConfig.setClusterName(null));
     }
 }

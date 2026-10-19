@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -699,7 +699,7 @@ public class SqlAvroTest extends KafkaSqlTestSupport {
             assertRecords.run();
         } else {
             assertThatThrownBy(assertRecords::run)
-                    .hasMessageContaining("Error deserializing key/value");
+                    .hasMessageContaining("Error deserializing VALUE");
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,6 +86,7 @@ class MapSplitBrainHandlerService extends AbstractSplitBrainHandlerService<Recor
         // global indexes to new-map-container only once.
         MapContainer mapContainer = recordStore.getMapContainer();
         if (mapServiceContext.removeMapContainer(mapContainer)) {
+            mapContainer.getMapStoreContext().stop();
             if (mapContainer.shouldUseGlobalIndex()) {
                 // remove global indexes from old-map-container and add them to new one
                 addIndexConfigToNewMapContainer(mapContainer.getName(), GLOBAL_INDEX_NOOP_PARTITION_ID,

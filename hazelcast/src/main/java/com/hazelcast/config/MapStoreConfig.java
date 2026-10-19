@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -448,8 +448,8 @@ public class MapStoreConfig implements IdentifiedDataSerializable, Versioned {
         factoryClassName = in.readString();
         writeDelaySeconds = in.readInt();
         writeBatchSize = in.readInt();
-        implementation = in.readObject();
-        factoryImplementation = in.readObject();
+        implementation = ConfigDeserializationUtil.readObject(in, getClass(), "implementation");
+        factoryImplementation = ConfigDeserializationUtil.readObject(in, getClass(), "factoryImplementation");
         properties = in.readObject();
         initialLoadMode = InitialLoadMode.valueOf(in.readString());
         offload = in.readBoolean();

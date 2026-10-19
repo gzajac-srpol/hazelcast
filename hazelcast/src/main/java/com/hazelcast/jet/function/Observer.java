@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ public interface Observer<T> {
 
     /**
      * Utility method for building an {@link Observer} only from its data
-     * callback, with default behaviour for completion & error.
+     * callback, with default behaviour for completion &amp; error.
      */
     @Nonnull
     static <T> Observer<T> of(@Nonnull ConsumerEx<? super T> onNext) {

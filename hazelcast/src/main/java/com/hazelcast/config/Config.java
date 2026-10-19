@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,6 +62,7 @@ import com.hazelcast.replicatedmap.ReplicatedMap;
 import com.hazelcast.security.jsm.HazelcastRuntimePermission;
 import com.hazelcast.spi.annotation.Beta;
 import com.hazelcast.spi.annotation.PrivateApi;
+import com.hazelcast.spi.properties.HazelcastProperty;
 import com.hazelcast.topic.ITopic;
 
 import javax.annotation.Nonnull;
@@ -583,6 +584,23 @@ public class Config {
     }
 
     /**
+     * Returns the value for a {@link HazelcastProperty Hazelcast property}. If it has not been previously
+     * set, it will try to get the value from the system properties.
+     *
+     * @param property property object
+     * @return property value
+     * @see #setProperty(String, String)
+     * @see <a href="https://docs.hazelcast.com/hazelcast/latest/system-properties">
+     * Hazelcast System Properties</a>
+     *
+     * @since 6.0
+     */
+    @Nullable
+    public String getProperty(@Nonnull HazelcastProperty property) {
+        return getProperty(property.getName());
+    }
+
+    /**
      * Sets the value of a named property.
      *
      * @param name  property name
@@ -600,6 +618,23 @@ public class Config {
         isNotNull(value, "value");
         properties.setProperty(name, value);
         return this;
+    }
+
+    /**
+     * Sets the value of a {@link HazelcastProperty Hazelcast property}.
+     *
+     * @param property Hazelcast property
+     * @param value value of the property
+     * @return this config instance
+     * @throws IllegalArgumentException if either {@code value} is {@code null} or if {@code property} is
+     *                                  {@code null}
+     * @see <a href="https://docs.hazelcast.com/hazelcast/latest/system-properties">
+     * Hazelcast System Properties</a>
+     *
+     * @since 6.0
+     */
+    public Config setProperty(@Nonnull HazelcastProperty property, @Nonnull String value) {
+        return setProperty(property.getName(), value);
     }
 
     /**
@@ -2671,9 +2706,9 @@ public class Config {
      * @return this config instance
      * @throws NullPointerException if the {@code hrConfig} parameter is {@code null}
      *
-     * @deprecated since 5.0 use {@link Config#setPersistenceConfig(PersistenceConfig)}
+     * @deprecated use {@link Config#setPersistenceConfig(PersistenceConfig)}
      */
-    @Deprecated
+    @Deprecated(since = "5.0")
     public Config setHotRestartPersistenceConfig(HotRestartPersistenceConfig hrConfig) {
         checkNotNull(hrConfig, "Hot restart config cannot be null!");
         this.hotRestartPersistenceConfig = hrConfig;
@@ -2973,10 +3008,28 @@ public class Config {
         return this;
     }
 
+    /**
+     * Returns the advanced network configuration for this Hazelcast instance.
+     * It allows separate endpoints with their own protocol, security, and socket settings.
+     * Advanced networking is disabled by default. When enabled, it takes precedence
+     * over {@link #getNetworkConfig()}.
+     *
+     * @return the advanced network configuration
+     * @since 3.12
+     */
     public AdvancedNetworkConfig getAdvancedNetworkConfig() {
         return advancedNetworkConfig;
     }
 
+    /**
+     * Sets the advanced network configuration for this Hazelcast instance.
+     * The supplied configuration must be {@link AdvancedNetworkConfig#setEnabled(boolean) enabled}
+     * to take precedence over {@link #getNetworkConfig()}.
+     *
+     * @param advancedNetworkConfig the advanced network configuration
+     * @return this config instance
+     * @since 3.12
+     */
     public Config setAdvancedNetworkConfig(AdvancedNetworkConfig advancedNetworkConfig) {
         this.advancedNetworkConfig = advancedNetworkConfig;
         return this;
@@ -3293,7 +3346,7 @@ public class Config {
 
     /**
      * @return the namespaces configuration object
-     * @since 5.4.0
+     * @since 5.4
      */
     public UserCodeNamespacesConfig getNamespacesConfig() {
         return userCodeNamespacesConfig;
@@ -3303,7 +3356,7 @@ public class Config {
      * Sets the namespaces configuration.
      * Internal API used for Spring configuration.
      *
-     * @since 5.4.0
+     * @since 5.4
      */
     @PrivateApi
     public @Nonnull Config setNamespacesConfig(@Nonnull UserCodeNamespacesConfig userCodeNamespacesConfig) {

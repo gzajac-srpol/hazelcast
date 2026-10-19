@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,7 +102,7 @@ import com.hazelcast.spi.discovery.integration.DiscoveryServiceProvider;
 import com.hazelcast.spi.discovery.integration.DiscoveryServiceSettings;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.spi.impl.eventservice.impl.operations.OnJoinRegistrationOperation;
-import com.hazelcast.spi.impl.proxyservice.impl.ProxyServiceImpl;
+import com.hazelcast.spi.impl.proxyservice.InternalProxyService;
 import com.hazelcast.spi.properties.ClusterProperty;
 import com.hazelcast.spi.properties.HazelcastProperties;
 import com.hazelcast.version.MemberVersion;
@@ -407,7 +407,7 @@ public class Node {
             }
             boolean known = false;
             if (listener instanceof DistributedObjectListener objectListener) {
-                final ProxyServiceImpl proxyService = (ProxyServiceImpl) nodeEngine.getProxyService();
+                final InternalProxyService proxyService = nodeEngine.getProxyService();
                 proxyService.addProxyListener(objectListener);
                 known = true;
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,9 @@ public enum ClearOpSteps implements IMapOpStep {
 
                 // skip locked keys
                 if (!recordStore.isLocked(dataKey)) {
-                    keys.add(tieredStorageEnabled ? toHeapData(dataKey) : dataKey);
+                    // Always copy keys to heap, because the offloaded
+                    // step accesses them from a non-partition thread.
+                    keys.add(toHeapData(dataKey));
                     if (!tieredStorageEnabled) {
                         records.add(record);
                     }

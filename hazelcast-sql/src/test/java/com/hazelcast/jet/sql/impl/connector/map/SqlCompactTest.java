@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,8 +39,10 @@ import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.sql.HazelcastSqlException;
 import com.hazelcast.sql.SqlRow;
 import com.hazelcast.sql.SqlService;
+import com.hazelcast.test.HazelcastSerialClassRunner;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -75,6 +77,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+@RunWith(HazelcastSerialClassRunner.class)
 public class SqlCompactTest extends SqlTestSupport {
 
     private static SqlService sqlService;
@@ -124,8 +127,10 @@ public class SqlCompactTest extends SqlTestSupport {
                 return Person.class;
             }
         });
+        addToCompactSerializationAllowList(config, Primitives.class);
 
         ClientConfig clientConfig = new ClientConfig();
+        addToCompactSerializationAllowList(clientConfig, Primitives.class);
         initializeWithClient(1, config, clientConfig);
         sqlService = instance().getSql();
         clientSqlService = client().getSql();

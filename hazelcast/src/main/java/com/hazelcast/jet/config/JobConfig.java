@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import com.hazelcast.jet.JetException;
 import com.hazelcast.jet.JetService;
 import com.hazelcast.jet.Job;
 import com.hazelcast.jet.annotation.EvolvingApi;
+import com.hazelcast.jet.core.JobStatus;
 import com.hazelcast.jet.core.Processor;
 import com.hazelcast.jet.core.ProcessorSupplier;
 import com.hazelcast.jet.impl.util.ReflectionUtils;
@@ -56,7 +57,9 @@ import java.util.Objects;
 import static com.hazelcast.internal.util.Preconditions.checkNotNegative;
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
 import static com.hazelcast.internal.util.Preconditions.checkTrue;
+import static com.hazelcast.jet.config.JobConfigArguments.REQUIRE_SNAPSHOT_BEFORE_PROCESSING;
 import static com.hazelcast.jet.config.ResourceType.CLASS;
+import static java.lang.Boolean.TRUE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
@@ -288,7 +291,7 @@ public class JobConfig implements IdentifiedDataSerializable {
     }
 
     /**
-     * Adds the given classes and recursively all their nested (inner & anonymous)
+     * Adds the given classes and recursively all their nested (inner &amp; anonymous)
      * classes to the Jet job's classpath. They will be accessible to all the code
      * attached to the underlying pipeline or DAG, but not to any other code. (An
      * important example is the {@code IMap} data source, which can instantiate only
@@ -1130,7 +1133,7 @@ public class JobConfig implements IdentifiedDataSerializable {
      * job. It will be accessible to all the code attached to the underlying
      * pipeline or DAG, but not to any other code. There are several serializer
      * types you can register, see the
-     * <a href="https://docs.hazelcast.com/hazelcast/latest/pipelines/serialization#serialization-of-data-types
+     * <a href="https://docs.hazelcast.com/hazelcast/latest/pipelines/serialization#serialization-of-data-types">
      * Programming Guide</a>.
      * <p>
      * A serializer registered on the job level has precedence over any
@@ -1270,6 +1273,48 @@ public class JobConfig implements IdentifiedDataSerializable {
     }
 
     /**
+     * Configures whether the job must complete an initial snapshot before it
+     * begins normal execution.
+     * <p>
+     * When set to {@code true}, the job will:
+     * <ul>
+     *   <li>Trigger an initial snapshot before processing any entries,</li>
+     *   <li>Delay entry processing until the snapshot completes successfully,</li>
+     *   <li>The job will not transition to the {@link JobStatus#RUNNING} state until the
+     *       initial snapshot has completed successfully.
+     * </ul>
+     * If set to {@code false}, the job follows the default behavior and does
+     * not require an initial snapshot prior to execution.
+     * <p>
+     * Note: This flag is ignored if {@link #setInitialSnapshotName(String)} is
+     * configured. In that case, the job restores its state from the provided
+     * snapshot and proceeds with normal execution according to that snapshot.
+     * <p>
+     * To prevent data loss in case of a failure before the first snapshot completes,
+     * enable this option for jobs that use stateful sources such as mapJournal or Kafka.
+     *
+     * @param required {@code true} to require an initial snapshot before normal
+     *                 execution; {@code false} to use the default behavior
+     * @since 5.7
+     */
+    public void setRequireSnapshotBeforeProcessing(boolean required) {
+        setArgument(REQUIRE_SNAPSHOT_BEFORE_PROCESSING, required);
+    }
+
+    /**
+     * Returns whether the job is configured to require completion of an
+     * initial snapshot before starting normal execution.
+     *
+     * @return {@code true} if an initial snapshot is required; {@code false}
+     *         otherwise
+     * @see #setRequireSnapshotBeforeProcessing(boolean)
+     * @since 5.7
+     */
+    public boolean isRequireSnapshotBeforeProcessing() {
+        return TRUE.equals(getArgument(REQUIRE_SNAPSHOT_BEFORE_PROCESSING));
+    }
+
+    /**
      * Returns if metrics collection is enabled for the job.
      *
      * @since Jet 3.2
@@ -1396,7 +1441,7 @@ public class JobConfig implements IdentifiedDataSerializable {
      *
      * @return the User Code Namespace associated with this job if it is configured, or
      * {@code null} if one has not been set.
-     * @since 6.0
+     * @since 5.6
      */
     @Nullable
     public String getUserCodeNamespace() {
@@ -1409,7 +1454,7 @@ public class JobConfig implements IdentifiedDataSerializable {
      * job, then the job will have access to resources from the UCN during execution.
      *
      * @param namespace the User Code Namespace to use with this Jet job
-     * @since 6.0
+     * @since 5.6
      */
     public void setUserCodeNamespace(String namespace) {
         this.arguments.put(JobConfigArguments.KEY_USER_CODE_NAMESPACE, namespace);

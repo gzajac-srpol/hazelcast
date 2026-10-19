@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,11 @@ public class RaftServiceUtil {
 
     public static final String SERVICE_NAME = "hz:core:raft";
     public static final String CP_SUBSYSTEM_EXECUTOR = "hz:cpSubsystem";
+    /*
+     Used to propagate autoStepDownWhenLeader through MemberImpl.
+     */
+    public static final String CP_AUTO_STEP_DOWN_WHEN_LEADER_ATTRIBUTE = "hazelcast.cp.auto.step.down.when.leader";
+
 
     private RaftServiceUtil() {
     }

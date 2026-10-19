@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,6 @@ import com.hazelcast.spi.merge.SplitBrainMergeTypes.CacheMergeTypes;
 import com.hazelcast.spi.properties.ClusterProperty;
 import com.hazelcast.spi.tenantcontrol.TenantControl;
 import com.hazelcast.wan.impl.CallerProvenance;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.annotation.Nonnull;
 import javax.cache.configuration.Factory;
@@ -509,6 +508,7 @@ public abstract class AbstractCacheRecordStore<R extends CacheRecord, CRM extend
         Data recordEventData = toEventData(removedRecord);
         if (removedRecord != null) {
             onProcessExpiredEntry(key, removedRecord, removedRecord.getExpirationTime(), now, source, origin);
+            invalidateEntry(keyEventData, nodeEngine.getLocalMember().getUuid());
             if (isEventsEnabled()) {
                 publishEvent(createCacheExpiredEvent(keyEventData, recordEventData,
                         TIME_NOT_AVAILABLE, origin, IGNORE_COMPLETION));
@@ -612,21 +612,17 @@ public abstract class AbstractCacheRecordStore<R extends CacheRecord, CRM extend
 
     protected long updateAccessDuration(Data key, R record, ExpiryPolicy expiryPolicy, long now) {
         long expiryTime = TIME_NOT_AVAILABLE;
-        try {
-            Duration expiryDuration = expiryPolicy.getExpiryForAccess();
-            if (expiryDuration != null) {
-                expiryTime = getAdjustedExpireTime(expiryDuration, now);
-                record.setExpirationTime(expiryTime);
-                if (isEventsEnabled()) {
-                    CacheEventContext cacheEventContext =
-                            createBaseEventContext(CacheEventType.EXPIRATION_TIME_UPDATED, toEventData(key),
-                                    toEventData(record.getValue()), expiryTime, null, IGNORE_COMPLETION);
-                    cacheEventContext.setAccessHit(record.getHits());
-                    publishEvent(cacheEventContext);
-                }
+        Duration expiryDuration = expiryPolicy.getExpiryForAccess();
+        if (expiryDuration != null) {
+            expiryTime = getAdjustedExpireTime(expiryDuration, now);
+            record.setExpirationTime(expiryTime);
+            if (isEventsEnabled()) {
+                CacheEventContext cacheEventContext =
+                    createBaseEventContext(CacheEventType.EXPIRATION_TIME_UPDATED, toEventData(key),
+                                           toEventData(record.getValue()), expiryTime, null, IGNORE_COMPLETION);
+                cacheEventContext.setAccessHit(record.getHits());
+                publishEvent(cacheEventContext);
             }
-        } catch (Exception e) {
-            ignore(e);
         }
         return expiryTime;
     }
@@ -1087,7 +1083,6 @@ public abstract class AbstractCacheRecordStore<R extends CacheRecord, CRM extend
         }
     }
 
-    @SuppressFBWarnings("WMI_WRONG_MAP_ITERATOR")
     protected void deleteAllCacheEntry(Set<Data> keys) {
         if (isWriteThrough() && keys != null && !keys.isEmpty()) {
             try (TenantControl.Closeable ctx = cacheWriter.getTenantControl().setTenant()) {

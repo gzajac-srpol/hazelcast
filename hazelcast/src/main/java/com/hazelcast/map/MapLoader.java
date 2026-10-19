@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ public interface MapLoader<K, V> {
      * to obtain the value. Implementation can use any means of loading the given key;
      * such as an O/R mapping tool, simple SQL or reading a file etc.
      *
-     * @param key, cannot be {@code null}
+     * @param key cannot be {@code null}
      * @return value of the key; returning {@code null} value signals value missing in the underlying store
      */
     V load(K key);

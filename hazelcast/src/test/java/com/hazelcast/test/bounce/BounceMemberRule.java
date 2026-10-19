@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import com.hazelcast.internal.nio.ClassLoaderUtil;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.logging.Logger;
 import com.hazelcast.test.TestHazelcastInstanceFactory;
+import com.hazelcast.test.bounce.BounceTestConfiguration.DriverConfiguration;
 import com.hazelcast.test.bounce.BounceTestConfiguration.DriverType;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -134,7 +135,7 @@ public class BounceMemberRule implements TestRule {
     private static final int DEFAULT_CLUSTER_SIZE = 6;
     private static final int DEFAULT_DRIVERS_COUNT = 5;
     // amount of time wait for test task futures to complete after test duration has passed
-    private static final int TEST_TASK_TIMEOUT_SECONDS = 30;
+    private static final int DEFAULT_TEST_TASK_TIMEOUT_SECONDS = 30;
     private static final int DEFAULT_BOUNCING_INTERVAL_SECONDS = 2;
     private static final long DEFAULT_MAXIMUM_STALE_SECONDS = STALENESS_DETECTOR_DISABLED;
     private static final AtomicInteger threadCounter = new AtomicInteger();
@@ -153,7 +154,7 @@ public class BounceMemberRule implements TestRule {
     private final AtomicInteger driverCounter = new AtomicInteger();
     private ExecutorService taskExecutor;
 
-    private BounceMemberRule(BounceTestConfiguration bounceTestConfig) {
+    BounceMemberRule(BounceTestConfiguration bounceTestConfig) {
         this.bounceTestConfig = bounceTestConfig;
         this.members = new AtomicReferenceArray<>(bounceTestConfig.getClusterSize());
         this.testDrivers = new AtomicReferenceArray<>(bounceTestConfig.getDriverCount());
@@ -201,9 +202,8 @@ public class BounceMemberRule implements TestRule {
      */
     public void testRepeatedly(int concurrency, Runnable task, long durationSeconds) {
         assert concurrency > 0 : "Concurrency level should be greater than 0";
-
-        TestTaskRunnable[] tasks = new TestTaskRunnable[concurrency];
-        Arrays.fill(tasks, new TestTaskRunnable(task));
+        Runnable[] tasks = new Runnable[concurrency];
+        Arrays.fill(tasks, task);
         testRepeatedly(tasks, durationSeconds);
     }
 
@@ -329,7 +329,7 @@ public class BounceMemberRule implements TestRule {
     }
 
     // Start cluster with configured number of members and member configuration
-    private void setup() {
+    void setup() {
         assert (bounceTestConfig.getClusterSize() > 1) : "Cluster size must be at least 2.";
 
         if (bounceTestConfig.getDriverType() == CLIENT) {
@@ -352,7 +352,7 @@ public class BounceMemberRule implements TestRule {
         testRunning.set(true);
     }
 
-    private void tearDown() {
+    void tearDown() {
         try {
             LOGGER.info("Tearing down BounceMemberRule");
             if (taskExecutor != null) {
@@ -363,7 +363,9 @@ public class BounceMemberRule implements TestRule {
             if (testDrivers != null) {
                 for (int i = 0; i < testDrivers.length(); i++) {
                     HazelcastInstance hz = testDrivers.get(i);
-                    hz.shutdown();
+                    if (hz != null) {
+                        hz.shutdown();
+                    }
                 }
             }
             if (factory != null) {
@@ -393,11 +395,7 @@ public class BounceMemberRule implements TestRule {
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
-                LOGGER.info("Spawning member bouncing thread");
-                bouncingMembersTask = new FutureTask<>(new MemberUpDownMonkey(), null);
-                Thread bounceMembersThread = new Thread(bouncingMembersTask);
-                bounceMembersThread.setDaemon(true);
-                bounceMembersThread.start();
+                startBouncing();
                 next.evaluate();
             }
         };
@@ -415,24 +413,41 @@ public class BounceMemberRule implements TestRule {
                 try {
                     next.evaluate();
                 } finally {
-                    testRunning.set(false);
-                    try {
-                        LOGGER.info("Waiting for member bouncing thread to stop...");
-                        bouncingMembersTask.get();
-                        LOGGER.info("Member bouncing thread stopped.");
-                    } catch (Exception e) {
-                        // do not rethrow
-                        LOGGER.warning("Member bouncing thread failed to stop.", e);
-                    }
+                    stopBouncing();
                 }
             }
         };
     }
 
+    void startBouncing() {
+        LOGGER.info("Spawning member bouncing thread");
+        bouncingMembersTask = new FutureTask<>(new MemberUpDownMonkey(), null);
+        Thread bounceMembersThread = new Thread(bouncingMembersTask);
+        bounceMembersThread.setDaemon(true);
+        bounceMembersThread.start();
+    }
+
+    void stopBouncing() {
+        testRunning.set(false);
+        if (bouncingMembersTask == null) {
+            return;
+        }
+        try {
+            LOGGER.info("Waiting for member bouncing thread to stop...");
+            bouncingMembersTask.get();
+            LOGGER.info("Member bouncing thread stopped.");
+        } catch (Exception e) {
+            // do not rethrow
+            LOGGER.warning("Member bouncing thread failed to stop.", e);
+        } finally {
+            bouncingMembersTask = null;
+        }
+    }
+
     // wait until all test tasks complete or one of them throws an exception
     private void waitForFutures(Future[] futures) {
         // do not wait more than 30 seconds
-        long deadline = currentTimeMillis() + SECONDS.toMillis(TEST_TASK_TIMEOUT_SECONDS);
+        long deadline = currentTimeMillis() + SECONDS.toMillis(bounceTestConfig.getTestTaskTimeoutSecs());
         LOGGER.info("Waiting until " + timeToString(deadline) + " for test tasks to complete gracefully.");
         List<Future> futuresToWaitFor = new ArrayList<>(Arrays.asList(futures));
         while (!futuresToWaitFor.isEmpty() && currentTimeMillis() < deadline) {
@@ -455,8 +470,14 @@ public class BounceMemberRule implements TestRule {
             }
         }
         if (!futuresToWaitFor.isEmpty()) {
-            LOGGER.warning("Test tasks did not complete within " + TEST_TASK_TIMEOUT_SECONDS + " seconds, there are still "
-                    + futuresToWaitFor.size() + " unfinished test tasks.");
+            String failureMessage = String.format(
+                    "Test tasks did not complete within %s seconds, there are still %s unfinished tasks",
+                    bounceTestConfig.getTestTaskTimeoutSecs(), futuresToWaitFor.size());
+            if (bounceTestConfig.shouldFailOnIncompleteTask()) {
+                throw new AssertionError(failureMessage);
+            } else {
+                LOGGER.warning(failureMessage);
+            }
         }
     }
 
@@ -473,6 +494,9 @@ public class BounceMemberRule implements TestRule {
         private boolean avoidOverlappingTerminations;
         private int bouncingIntervalSeconds = DEFAULT_BOUNCING_INTERVAL_SECONDS;
         private long maximumStaleSeconds = DEFAULT_MAXIMUM_STALE_SECONDS;
+        private boolean hasSteadyMember = true;
+        private boolean shouldFailOnIncompleteTask;
+        private int testTaskTimeoutSecs = DEFAULT_TEST_TASK_TIMEOUT_SECONDS;
 
         private Builder(Supplier<Config> memberConfigSupplier, boolean constantConfigSupplier) {
             this.memberConfigSupplier = memberConfigSupplier;
@@ -509,9 +533,10 @@ public class BounceMemberRule implements TestRule {
                         throw new AssertionError("Cannot instantiate driver factory for driver type " + testDriverType);
                 }
             }
-            return new BounceMemberRule(new BounceTestConfiguration(clusterSize, testDriverType, memberConfigSupplier,
-                    driversCount, driverFactory, useTerminate, avoidOverlappingTerminations,
-                    bouncingIntervalSeconds, maximumStaleSeconds));
+            return new BounceMemberRule(
+                    new BounceTestConfiguration(clusterSize, new DriverConfiguration(testDriverType, driversCount, driverFactory),
+                            memberConfigSupplier, useTerminate, avoidOverlappingTerminations, bouncingIntervalSeconds,
+                            maximumStaleSeconds, hasSteadyMember, shouldFailOnIncompleteTask, testTaskTimeoutSecs));
         }
 
         public Builder clusterSize(int clusterSize) {
@@ -565,6 +590,21 @@ public class BounceMemberRule implements TestRule {
             return this;
         }
 
+        public Builder noSteadyMember() {
+            this.hasSteadyMember = false;
+            return this;
+        }
+
+        public Builder shouldFailOnIncompleteTask() {
+            shouldFailOnIncompleteTask = true;
+            return this;
+        }
+
+        public Builder testTaskTimeoutSecs(int testTaskTimeoutSecs) {
+            this.testTaskTimeoutSecs = testTaskTimeoutSecs;
+            return this;
+        }
+
         // reflectively instantiate default client-side test driver factory
         private DriverFactory newDefaultClientDriverFactory() {
             try {
@@ -583,8 +623,8 @@ public class BounceMemberRule implements TestRule {
     protected class MemberUpDownMonkey implements Runnable {
         @Override
         public void run() {
-            // rotate members 1..members.length(), member.get(0) is the steady member
-            int divisor = members.length() - 1;
+            // rotate members 1..members.length(), member.get(0) is the steady member if hasSteadyMember is true
+            int divisor = bounceTestConfig.hasSteadyMember() ? members.length() - 1 : members.length();
             int i = 1;
             try {
                 while (testRunning.get()) {
@@ -597,7 +637,7 @@ public class BounceMemberRule implements TestRule {
                             // might lead to data loss.
                             // This check is done after termination to give time to accumulate some in-progress operations
                             // before next termination.
-                            assertClusterSizeEventually(bounceTestConfig.getClusterSize() - 1, getSteadyMember());
+                            assertClusterSizeEventually(bounceTestConfig.getEffectiveClusterSize() - 1, getSteadyMember());
                             waitClusterForSafeState(getSteadyMember());
                         }
                     } else {
@@ -611,7 +651,7 @@ public class BounceMemberRule implements TestRule {
                     members.set(i, factory.newHazelcastInstance(memberConfigSupplier.get()));
                     sleepSecondsWhenRunning(bouncingIntervalSeconds);
                     // move to next member
-                    i = i % divisor + 1;
+                    i = bounceTestConfig.hasSteadyMember() ? i % divisor + 1 : (i + 1) % divisor;
                 }
             } catch (Throwable t) {
                 LOGGER.warning("Error while bouncing members", t);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -118,6 +118,8 @@ public class SerializationIssueTest extends HazelcastTestSupport {
                         return 123;
                     }
 
+                    public void destroy() {
+                    }
                 }));
 
         SerializationService ss1 = new DefaultSerializationServiceBuilder().setConfig(serializationConfig).build();
@@ -161,6 +163,8 @@ public class SerializationIssueTest extends HazelcastTestSupport {
                         return 123;
                     }
 
+                    public void destroy() {
+                    }
                 }));
 
         SerializationService ss1 = new DefaultSerializationServiceBuilder().setConfig(serializationConfig).build();
@@ -236,6 +240,9 @@ public class SerializationIssueTest extends HazelcastTestSupport {
                                 return 123;
                             }
 
+                            @Override
+                            public void destroy() {
+                            }
                         }));
 
         SerializationService ss1 = new DefaultSerializationServiceBuilder().setConfig(serializationConfig).build();

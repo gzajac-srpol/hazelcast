@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2025 Hazelcast Inc.
+  ~ Copyright 2026 Hazelcast Inc.
   ~
   ~ Licensed under the Hazelcast Community License (the "License"); you may not use
   ~ this file except in compliance with the License. You may obtain a copy of the
@@ -1515,40 +1515,37 @@
         </xs:complexType>
     </xs:element>
 
-    <!--> Copy of `java-serialization-filter` with a more appropriate naming/descriptions for Namespaces <-->
-    <xs:element name="class-filter">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="blacklist" type="filter-list" minOccurs="0">
-                    <xs:annotation>
-                        <xs:documentation>
-                            Blacklisted class names, package names, and prefixes, which are not allowed to be loaded by User Code
-                            Namespaces.
-                        </xs:documentation>
-                    </xs:annotation>
-                </xs:element>
-                <xs:element name="whitelist" type="filter-list" minOccurs="0">
-                    <xs:annotation>
-                        <xs:documentation>
-                            Whitelisted class names, package names, and prefixes, which are allowed to be loaded by User Code
-                            Namespaces.
-                            If the list is empty (no class, package, or prefix patterns provided) then all classes are allowed.
-                        </xs:documentation>
-                    </xs:annotation>
-                </xs:element>
-            </xs:sequence>
-            <xs:attribute name="defaults-disabled" default="false">
+    <!--> Copy of `java-serialization-filter` with more general descriptions for other use cases <-->
+    <xs:complexType name="class-filter">
+        <xs:sequence>
+            <xs:element name="blacklist" type="filter-list" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        Disables including default list entries (hardcoded in Hazelcast source code).
+                        Class names, package names, and prefixes, which are rejected by the filter.
                     </xs:documentation>
                 </xs:annotation>
-                <xs:simpleType>
-                    <xs:restriction base="xs:boolean"/>
-                </xs:simpleType>
-            </xs:attribute>
-        </xs:complexType>
-    </xs:element>
+            </xs:element>
+            <xs:element name="whitelist" type="filter-list" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Class names, package names, and prefixes, which are allowed by the filter.
+
+                        If the list is empty (no class, package, or prefix patterns provided) then all classes are allowed.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="defaults-disabled" default="false">
+            <xs:annotation>
+                <xs:documentation>
+                    Disables including default list entries (hardcoded in Hazelcast source code).
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:restriction base="xs:boolean"/>
+            </xs:simpleType>
+        </xs:attribute>
+    </xs:complexType>
 
     <xs:complexType name="filter-list">
         <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -1601,6 +1598,7 @@
             <xs:all>
                 <xs:element name="serializers" type="compact-serializers" minOccurs="0"/>
                 <xs:element name="classes" type="compact-serializable-classes" minOccurs="0"/>
+                <xs:element name="zero-config-filter" type="class-filter" minOccurs="0"/>
             </xs:all>
         </xs:complexType>
     </xs:element>
@@ -2053,6 +2051,18 @@
             <xs:appinfo>
                 <tool:annotation>
                     <tool:exports type="com.hazelcast.crdt.pncounter.PNCounter"/>
+                </tool:annotation>
+            </xs:appinfo>
+        </xs:annotation>
+    </xs:element>
+    <xs:element name="vectorCollection" type="hazelcast-type">
+        <xs:annotation>
+            <xs:documentation>
+                Retrieve a Hazelcast Vector Collection instance
+            </xs:documentation>
+            <xs:appinfo>
+                <tool:annotation>
+                    <tool:exports type="com.hazelcast.vector.VectorCollection"/>
                 </tool:annotation>
             </xs:appinfo>
         </xs:annotation>
@@ -5497,6 +5507,9 @@
                         Flag to denote whether or not CP Subsystem Persistence is enabled.
                         If enabled, CP members persist their local CP data to stable storage and
                         can recover from crashes.
+                        Feature is disabled by default. If you enable this option in open-source,
+                        the member will fail to start, you need Enterprise to run it and obtain a
+                        license from Hazelcast.
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
@@ -5526,6 +5539,9 @@
                     <xs:documentation>
                         The CP member priority. The CP groups' leadership will be eventually
                         transferred to members with higher priorities within the CP group.
+                        Feature is disabled by default. If you enable this option in open-source,
+                        the member will fail to start, you need Enterprise to run it and obtain a
+                        license from Hazelcast.
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
@@ -5533,6 +5549,42 @@
                 <xs:annotation>
                     <xs:documentation>
                         Contains configuration options for Hazelcast's Raft consensus algorithm implementation
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="auto-step-down-when-leader" type="xs:boolean" minOccurs="0" default="false">
+                <xs:annotation>
+                    <xs:documentation>
+                        Indicates whether this CP member should automatically step down if it is elected
+                        as the leader of any non-metadata CP group. When enabled, the member will not
+                        serve as a long-term leader and will immediately transfer leadership to another
+                        member.
+
+                        In addition to influencing runtime leadership behavior, this setting also affects
+                        CP group formation and membership changes:
+
+                        • A new CP group can be created only if the cluster contains a majority of
+                        leader-capable members (i.e., members that do not auto-step-down).
+                        • When a CP member is added to or removed from a group, auto-step-down members
+                        are used as substitutes only if they do not violate the majority-of-leader-capable
+                        constraint.
+
+                        The maximum number of auto-step-down members that can safely participate in a CP
+                        group is:
+
+                        n = groupSize - (groupSize / 2 + 1)
+
+                        This follows from the requirement that every CP group must contain a strict
+                        majority of leader-capable members (i.e., members for which
+                        auto-step-down-when-leader is false). If more than n auto-step-down members are
+                        present in a group, the group would lose its ability to maintain a stable leader.
+
+                        Note: When set to true, cpMemberPriority is ignored because this member
+                        is not allowed to hold leadership.
+
+                        Feature is disabled by default. If you enable this option in open-source,
+                        the member will fail to start, you need Enterprise to run it and obtain a
+                        license from Hazelcast.
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
@@ -5753,6 +5805,19 @@
                 <xs:annotation>
                     <xs:documentation>
                         Maximum size in MB that the constituent key-value pairs of the CPMap can total.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="purge-enabled" type="xs:boolean" minOccurs="0" default="false">
+                <xs:annotation>
+                    <xs:documentation>
+                        Enables time-based purging of CPMap entries.
+                        When enabled, entries exceeding a given age can be removed
+                        based on timestamps assigned by the Raft leader rather than
+                        local timestamps of follower nodes.
+                        Feature is disabled by default. If you enable this option in open-source,
+                        the member will fail to start, you need Enterprise to run it and obtain a
+                        license from Hazelcast.
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
@@ -6596,7 +6661,7 @@
             </xs:documentation>
         </xs:annotation>
         <xs:sequence>
-            <xs:element ref="class-filter" minOccurs="0"/>
+            <xs:element name="class-filter" type="class-filter" minOccurs="0"/>
             <xs:element name="namespace" type="namespace-type" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="enabled" type="xs:boolean" use="required"/>

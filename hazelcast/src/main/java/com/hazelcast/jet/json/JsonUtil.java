@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,14 @@
 
 package com.hazelcast.jet.json;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.json.JsonReadFeature;
-import com.fasterxml.jackson.jr.annotationsupport.JacksonAnnotationExtension;
-import com.fasterxml.jackson.jr.ob.JSON;
 import com.hazelcast.core.HazelcastJsonValue;
+import com.hazelcast.jet.json.impl.JacksonJrFilteringExtension;
 import com.hazelcast.jet.pipeline.Sources;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.json.JsonFactory;
+import tools.jackson.core.json.JsonReadFeature;
+import tools.jackson.jr.annotationsupport.JacksonAnnotationExtension;
+import tools.jackson.jr.ob.JSON;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,10 +61,12 @@ public final class JsonUtil {
 
     static {
         JsonFactory jf = JsonFactory.builder()
-                                    .enable(JsonReadFeature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER)
-                                    .enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS)
-                                    .build();
-        JSON.Builder builder = JSON.builder(jf).enable(JSON.Feature.ACCEPT_CASE_INSENSITIVE_PROPERTIES);
+                .enable(JsonReadFeature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER)
+                .enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS)
+                .build();
+        JSON.Builder builder = JSON.builder(jf)
+                .register(new JacksonJrFilteringExtension())
+                .enable(JSON.Feature.ACCEPT_CASE_INSENSITIVE_PROPERTIES);
         try {
             Class.forName("com.fasterxml.jackson.annotation.JacksonAnnotation", false, JsonUtil.class.getClassLoader());
             builder.register(JacksonAnnotationExtension.std);
@@ -88,7 +92,11 @@ public final class JsonUtil {
      */
     @Nullable
     public static <T> T beanFrom(@Nonnull String jsonString, @Nonnull Class<T> type) throws IOException {
-        return JSON_JR.beanFrom(type, jsonString);
+        try {
+            return JSON_JR.beanFrom(type, jsonString);
+        } catch (JacksonException e) {
+            throw new IOException(e);
+        }
     }
 
     /**
@@ -96,7 +104,11 @@ public final class JsonUtil {
      */
     @Nullable
     public static Map<String, Object> mapFrom(@Nonnull Object object) throws IOException {
-        return JSON_JR.mapFrom(object);
+        try {
+            return JSON_JR.mapFrom(object);
+        } catch (JacksonException e) {
+            throw new IOException(e);
+        }
     }
 
     /**
@@ -104,7 +116,11 @@ public final class JsonUtil {
      */
     @Nullable
     public static <T> List<T> listFrom(@Nonnull String jsonString, @Nonnull Class<T> type) throws IOException {
-        return JSON_JR.listOfFrom(type, jsonString);
+        try {
+            return JSON_JR.listOfFrom(type, jsonString);
+        } catch (JacksonException e) {
+            throw new IOException(e);
+        }
     }
 
     /**
@@ -112,7 +128,11 @@ public final class JsonUtil {
      */
     @Nullable
     public static List<Object> listFrom(@Nonnull String jsonString) throws IOException {
-        return JSON_JR.listFrom(jsonString);
+        try {
+            return JSON_JR.listFrom(jsonString);
+        } catch (JacksonException e) {
+            throw new IOException(e);
+        }
     }
 
     /**
@@ -129,7 +149,11 @@ public final class JsonUtil {
      */
     @Nullable
     public static Object anyFrom(@Nonnull String jsonString) throws IOException {
-        return JSON_JR.anyFrom(jsonString);
+        try {
+            return JSON_JR.anyFrom(jsonString);
+        } catch (JacksonException e) {
+            throw new IOException(e);
+        }
     }
 
     /**
@@ -138,9 +162,12 @@ public final class JsonUtil {
      * {@code type}.
      */
     @Nonnull
-    public static <T> Iterator<T> beanSequenceFrom(@Nonnull Reader reader, @Nonnull Class<T> type)
-            throws IOException {
-        return JSON_JR.beanSequenceFrom(type, reader);
+    public static <T> Iterator<T> beanSequenceFrom(@Nonnull Reader reader, @Nonnull Class<T> type) throws IOException {
+        try {
+            return JSON_JR.beanSequenceFrom(type, reader);
+        } catch (JacksonException e) {
+            throw new IOException(e);
+        }
     }
 
     /**
@@ -151,9 +178,13 @@ public final class JsonUtil {
      * arrays ({@link List}).
      */
     @Nonnull
-    public static Iterator<Map<String, Object>> mapSequenceFrom(@Nonnull Reader reader)
-            throws IOException {
-        return (Iterator) JSON_JR.anySequenceFrom(reader);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static Iterator<Map<String, Object>> mapSequenceFrom(@Nonnull Reader reader)  throws IOException {
+        try {
+            return (Iterator) JSON_JR.anySequenceFrom(reader);
+        } catch (JacksonException e) {
+            throw new IOException(e);
+        }
     }
 
     /**
@@ -196,7 +227,10 @@ public final class JsonUtil {
      */
     @Nonnull
     public static String toJson(@Nonnull Object object) throws IOException {
-        return JSON_JR.asString(object);
+        try {
+            return JSON_JR.asString(object);
+        } catch (JacksonException e) {
+            throw new IOException(e);
+        }
     }
-
 }

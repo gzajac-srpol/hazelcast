@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import com.hazelcast.internal.metrics.Probe;
 import com.hazelcast.internal.metrics.ProbeLevel;
 import com.hazelcast.internal.metrics.ProbeUnit;
 import com.hazelcast.internal.serialization.SerializationService;
+import com.hazelcast.internal.tpcengine.util.ReflectionUtil;
 import com.hazelcast.internal.util.MutableInteger;
 import com.hazelcast.internal.util.Preconditions;
 import com.hazelcast.internal.util.collection.FixedCapacityArrayList;
@@ -45,10 +46,10 @@ import com.hazelcast.jet.impl.util.ProgressState;
 import com.hazelcast.jet.impl.util.ProgressTracker;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.logging.Logger;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayDeque;
 import java.util.BitSet;
 import java.util.Deque;
@@ -62,6 +63,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.function.Consumer;
 
+import static com.hazelcast.internal.util.ExceptionUtil.sneakyThrow;
 import static com.hazelcast.jet.core.metrics.MetricNames.COALESCED_WM;
 import static com.hazelcast.jet.core.metrics.MetricNames.EMITTED_COUNT;
 import static com.hazelcast.jet.core.metrics.MetricNames.LAST_FORWARDED_WM;
@@ -88,7 +90,6 @@ import static com.hazelcast.jet.impl.execution.ProcessorState.SNAPSHOT_COMMIT_PR
 import static com.hazelcast.jet.impl.execution.ProcessorState.WAITING_FOR_SNAPSHOT_COMPLETED;
 import static com.hazelcast.jet.impl.execution.WatermarkCoalescer.IDLE_MESSAGE;
 import static com.hazelcast.jet.impl.execution.WatermarkCoalescer.IDLE_MESSAGE_TIME;
-import static com.hazelcast.internal.util.ExceptionUtil.sneakyThrow;
 import static com.hazelcast.jet.impl.util.PrefixedLogger.prefix;
 import static com.hazelcast.jet.impl.util.PrefixedLogger.prefixedLogger;
 import static com.hazelcast.jet.impl.util.ProgressState.NO_PROGRESS;
@@ -102,6 +103,7 @@ import static java.util.Comparator.comparing;
 public class ProcessorTasklet implements Tasklet {
 
     private static final int OUTBOX_BATCH_SIZE = 2048;
+    private static final VarHandle UPDATE_QUEUE_SIZES = ReflectionUtil.findVarHandle("updateQueueSizes", boolean.class);
 
     private final ProgressTracker progTracker = new ProgressTracker();
     private final OutboundEdgeStream[] outstreams;
@@ -151,9 +153,14 @@ public class ProcessorTasklet implements Tasklet {
     // Once a terminal snapshot barrier is reached, this is always true.
     private boolean waitForAllBarriers;
 
+    private boolean awaitInitialSnapshot;
+
     private final AtomicLongArray receivedCounts;
     private final AtomicLongArray receivedBatches;
     private final AtomicLongArray emittedCounts;
+
+    // updated via UPDATE_QUEUE_SIZES
+    private volatile boolean updateQueueSizes;
 
     @Probe(name = MetricNames.QUEUES_SIZE)
     private final Counter queuesSize = SwCounter.newSwCounter();
@@ -204,6 +211,7 @@ public class ProcessorTasklet implements Tasklet {
         waitForAllBarriers = ssContext.processingGuarantee() == ProcessingGuarantee.EXACTLY_ONCE;
 
         coalescers = new KeyedWatermarkCoalescer(instreams.size());
+        awaitInitialSnapshot = ssContext.isAwaitInitialSnapshot();
     }
 
     private Queue<InboundEdgeStream[]> createInstreamGroupQueue(List<? extends InboundEdgeStream> instreams) {
@@ -231,8 +239,8 @@ public class ProcessorTasklet implements Tasklet {
         return queue;
     }
 
-    @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE",
-            justification = "hazelcastInstance() can be null in TestProcessorContext")
+//    @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE",
+//            justification = "hazelcastInstance() can be null in TestProcessorContext")
     private ILogger getLogger(@Nonnull Context context) {
         //noinspection ConstantConditions
         return context.hazelcastInstance() != null
@@ -285,6 +293,13 @@ public class ProcessorTasklet implements Tasklet {
     @Override @Nonnull
     public ProgressState call() {
         assert state != END : "already in terminal state";
+
+        if (UPDATE_QUEUE_SIZES.weakCompareAndSetAcquire(this, true, false)) {
+            // We need to collect metrics before draining the queues into Inbox,
+            // otherwise they would appear empty even for slow processors
+            updateQueueMetrics();
+        }
+
         progTracker.reset();
         progTracker.notDone();
         outbox.reset();
@@ -536,6 +551,17 @@ public class ProcessorTasklet implements Tasklet {
                 return;
             }
         }
+
+        if (awaitInitialSnapshot) {
+            if (ssContext.isAwaitInitialSnapshot()) {
+                logger.finest("Processor did not started, await initial snapshot");
+                return;
+            } else {
+                awaitInitialSnapshot = false;
+                logger.fine("Processor: " + processor.getClass().getSimpleName() + " initial snapshot done. Start processing");
+            }
+        }
+
         if (processor.complete()) {
             progTracker.madeProgress();
             state = pendingSnapshotId2 < pendingSnapshotId1
@@ -548,13 +574,6 @@ public class ProcessorTasklet implements Tasklet {
         assert inbox.isEmpty() : "inbox is not empty";
         assert pendingGlobalWatermarks.isEmpty() && pendingEdgeWatermark.isEmpty()
                 : "No pending watermarks are expected here";
-
-        // We need to collect metrics before draining the queues into Inbox,
-        // otherwise they would appear empty even for slow processors
-        queuesCapacity.set(instreamCursor == null ? 0 :
-                sum(instreamCursor.getArray(), InboundEdgeStream::capacities, instreamCursor.getSize()));
-        queuesSize.set(instreamCursor == null ? 0 :
-                sum(instreamCursor.getArray(), InboundEdgeStream::sizes, instreamCursor.getSize()));
 
         if (instreamCursor == null) {
             return;
@@ -618,6 +637,13 @@ public class ProcessorTasklet implements Tasklet {
         if (!inbox.isEmpty()) {
             lazyIncrement(receivedBatches, currInstream.ordinal());
         }
+    }
+
+    private void updateQueueMetrics() {
+        queuesCapacity.set(instreamCursor == null ? 0 :
+                sum(instreamCursor.getArray(), InboundEdgeStream::capacities, instreamCursor.getSize()));
+        queuesSize.set(instreamCursor == null ? 0 :
+                sum(instreamCursor.getArray(), InboundEdgeStream::sizes, instreamCursor.getSize()));
     }
 
     private CircularListCursor<InboundEdgeStream> popInstreamGroup() {
@@ -746,5 +772,9 @@ public class ProcessorTasklet implements Tasklet {
         if (context instanceof ProcCtx procCtx) {
             procCtx.metricsContext().provideDynamicMetrics(descriptor, mContext);
         }
+
+        // trigger update of queue sizes
+        // note that the values can be stale by 1-2 metric collection cycles (by default 5-10s)
+        UPDATE_QUEUE_SIZES.setRelease(this, true);
     }
 }

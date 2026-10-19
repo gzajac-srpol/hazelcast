@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@ public interface Step<S> {
     /**
      * Idempotent next step finder.
      *
-     * @param state state
      * @return next step or null if there is no next step.
      * @implSpec This implementation always throws
      * {@code UnsupportedOperationException}.
@@ -49,10 +48,12 @@ public interface Step<S> {
     }
 
     /**
-     * @return {@code true} if this step must be
-     * offloaded to a thread other than {@link
-     * com.hazelcast.spi.impl.operationexecutor.impl.PartitionOperationThread}
-     * otherwise {@code false}
+     * @return {@code true} if this step should be offloaded to a thread other than
+     * {@link com.hazelcast.spi.impl.operationexecutor.impl.PartitionOperationThread};
+     * {@code false} otherwise.
+     * @implNote When this step runs on a separate offloaded thread, not on the partition thread,
+     * it must not access state that is restricted to the partition thread.
+     * Only the partition thread may access that state to keep thread access safe.
      */
     default boolean isOffloadStep(S state) {
         return false;

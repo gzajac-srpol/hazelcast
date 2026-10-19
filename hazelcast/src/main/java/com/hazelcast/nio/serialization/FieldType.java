@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import static java.lang.Integer.MAX_VALUE;
  * Field Type for {@link Portable} format to be used with {@link ClassDefinition#getFieldType(String)} API
  */
 @SuppressWarnings("JavadocVariable")
+@Deprecated(since = "5.4", forRemoval = true)
 public enum FieldType {
 
     /**

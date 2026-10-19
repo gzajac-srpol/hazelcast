@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package com.hazelcast.internal.tpcengine.iobuffer;
 
 import com.hazelcast.internal.tpcengine.net.AsyncSocket;
+import com.hazelcast.internal.tpcengine.util.BufferUtil;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -161,7 +162,7 @@ public class IOBuffer {
     @SuppressWarnings("checkstyle:MagicNumber")
     public void writeShortL(short v) {
         ensureRemaining(SIZEOF_INT);
-        buff.put((byte) ((v) & 0xFF));
+        buff.put((byte) (v & 0xFF));
         buff.put((byte) ((v >>> 8) & 0xFF));
     }
 
@@ -185,7 +186,7 @@ public class IOBuffer {
     @SuppressWarnings("checkstyle:MagicNumber")
     public void writeIntL(int v) {
         ensureRemaining(SIZEOF_INT);
-        buff.put((byte) ((v) & 0xFF));
+        buff.put((byte) (v & 0xFF));
         buff.put((byte) ((v >>> 8) & 0xFF));
         buff.put((byte) ((v >>> 16) & 0xFF));
         buff.put((byte) ((v >>> 24) & 0xFF));
@@ -209,20 +210,8 @@ public class IOBuffer {
     }
 
     public void write(ByteBuffer src) {
-        write(src, src.remaining());
-    }
-
-    public void write(ByteBuffer src, int count) {
-        ensureRemaining(count);
-
-        if (src.remaining() <= count) {
-            buff.put(src);
-        } else {
-            int limit = src.limit();
-            src.limit(src.position() + count);
-            buff.put(src);
-            src.limit(limit);
-        }
+        ensureRemaining(src.remaining());
+        BufferUtil.put(buff, src);
     }
 
     // very inefficient

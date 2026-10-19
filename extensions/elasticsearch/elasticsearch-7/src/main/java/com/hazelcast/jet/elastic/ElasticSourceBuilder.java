@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,9 @@ import static java.util.Objects.requireNonNull;
  *
  * @param <T> type of the output of the mapping function from {@link SearchHit} -> T
  * @since Jet 4.2
+ * @deprecated <a href="https://www.elastic.co/support/eol"> Elasticsearch 7 is no longer supported</a>
  */
+@Deprecated(forRemoval = true, since = "5.7")
 public final class ElasticSourceBuilder<T> {
 
     private static final String DEFAULT_NAME = "elasticSource";

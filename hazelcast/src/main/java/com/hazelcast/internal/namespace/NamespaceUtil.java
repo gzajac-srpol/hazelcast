@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,11 @@ package com.hazelcast.internal.namespace;
 import com.hazelcast.function.ThrowingBiFunction;
 import com.hazelcast.function.ThrowingRunnable;
 import com.hazelcast.internal.namespace.impl.NamespaceThreadLocalContext;
-import com.hazelcast.internal.namespace.impl.NodeEngineThreadLocalContext;
+import com.hazelcast.spi.impl.NodeEngineThreadLocalContext;
 import com.hazelcast.jet.impl.deployment.MapResourceClassLoader;
 import com.hazelcast.spi.impl.NodeEngine;
 
 import javax.annotation.Nullable;
-
 import java.util.concurrent.Callable;
 
 import static com.hazelcast.internal.util.ExceptionUtil.sneakyThrow;

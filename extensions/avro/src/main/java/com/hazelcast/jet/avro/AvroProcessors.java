@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import com.hazelcast.jet.core.ProcessorMetaSupplier;
 import com.hazelcast.jet.impl.connector.ReadFilesP;
 import com.hazelcast.jet.impl.connector.WriteBufferedP;
 import com.hazelcast.security.permission.ConnectorPermission;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
@@ -40,9 +39,11 @@ import java.util.List;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static com.hazelcast.jet.avro.AvroSinks.AVRO_SINK_CONNECTOR_NAME;
 import static com.hazelcast.jet.avro.AvroSources.AVRO_SOURCE_CONNECTOR_NAME;
 import static com.hazelcast.jet.core.ProcessorMetaSupplier.preferLocalParallelismOne;
 import static com.hazelcast.jet.impl.util.Util.uncheckRun;
+import static com.hazelcast.security.impl.function.SecuredFunctions.validateContext;
 import static com.hazelcast.security.permission.ActionConstants.ACTION_READ;
 import static com.hazelcast.security.permission.ActionConstants.ACTION_WRITE;
 import static java.util.Collections.singletonList;
@@ -81,6 +82,17 @@ public final class AvroProcessors {
     public static <D> ProcessorMetaSupplier writeFilesP(
             @Nonnull String directoryName,
             @Nonnull Schema schema,
+            @Nonnull SupplierEx<DatumWriter<D>> datumWriterSupplier) {
+        return writeFilesP(directoryName, schema, datumWriterSupplier, AVRO_SINK_CONNECTOR_NAME);
+    }
+
+    /**
+     * Returns a supplier of processors for {@link AvroSinks#files}.
+     */
+    @Nonnull
+    public static <D> ProcessorMetaSupplier writeFilesP(
+            @Nonnull String directoryName,
+            @Nonnull Schema schema,
             @Nonnull SupplierEx<DatumWriter<D>> datumWriterSupplier,
             String connectorName
     ) {
@@ -95,10 +107,10 @@ public final class AvroProcessors {
                 ), connectorName);
     }
 
-    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
-            justification = "mkdirs() returns false if the directory already existed, which is good. "
-                    + "We don't care even if it didn't exist and we failed to create it, "
-                    + "because we'll fail later when trying to create the file.")
+//    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+//            justification = "mkdirs() returns false if the directory already existed, which is good. "
+//                    + "We don't care even if it didn't exist and we failed to create it, "
+//                    + "because we'll fail later when trying to create the file.")
     private static <D> FunctionEx<Processor.Context, DataFileWriter<D>> dataFileWriterFn(
             String directoryName, String jsonSchema, SupplierEx<DatumWriter<D>> datumWriterSupplier
     ) {
@@ -109,6 +121,8 @@ public final class AvroProcessors {
 
             @Override
             public DataFileWriter<D> applyEx(Processor.Context context) throws Exception {
+                validateContext(context);
+
                 Schema.Parser parser = new Schema.Parser();
                 Schema schema = parser.parse(jsonSchema);
 

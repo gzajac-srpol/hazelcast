@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -298,7 +298,7 @@ public class SqlUnionTest extends SqlTestSupport {
         //  Union converts to UnionAll + Aggregation, and  prunable Aggregation implementor
         //  easily may miss that fact during testing.
         //  Right now it just a execution check test.
-        // https://hazelcast.atlassian.net/browse/HZ-2796
+        // https://hazelcast.atlassian.net/browse/HZOLD-2796
         String map1Name = randomName();
         String map2Name = randomName();
         instance().getConfig().addMapConfig(
@@ -358,7 +358,7 @@ public class SqlUnionTest extends SqlTestSupport {
         //  Union converts to UnionAll + Aggregation, and  prunable Aggregation implementor
         //  easily may miss that fact during testing.
         //  Right now it just a execution check test.
-        // JIRA issue : https://hazelcast.atlassian.net/browse/HZ-2796
+        // JIRA issue : https://hazelcast.atlassian.net/browse/HZOLD-2796
         instance().getConfig().addMapConfig(
                 new MapConfig("pMap1").setPartitioningAttributeConfigs(List.of(
                         new PartitioningAttributeConfig("id")

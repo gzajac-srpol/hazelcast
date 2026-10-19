@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -204,7 +204,7 @@ class AuthenticationKeyValuePairConstantsTest {
 
     private static class DummyCPGroupsSnapshot extends CPGroupsSnapshot {
         DummyCPGroupsSnapshot() {
-            super(createSimpleMap(DUMMY_RAFT_GROUP_ID, new GroupInfo(new CPMemberInfo(DUMMY_LEADER_UUID, new Address()),
+            super(createSimpleMap(DUMMY_RAFT_GROUP_ID, new GroupInfo(new CPMemberInfo(DUMMY_LEADER_UUID, new Address(), false),
                     Collections.emptySet(), -1)), createSimpleMap(DUMMY_LEADER_UUID, DUMMY_LEADER_UUID));
         }
     }

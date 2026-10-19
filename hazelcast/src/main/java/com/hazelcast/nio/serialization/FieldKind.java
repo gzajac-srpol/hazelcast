@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ public enum FieldKind {
      * @deprecated Portable Serialization has been deprecated. We recommend you use Compact Serialization as Portable
      * Serialization will be removed as of version 7.0.
      */
-    @Deprecated(since = "5.4", forRemoval = false)
+    @Deprecated(since = "5.4", forRemoval = true)
     CHAR(5),
 
     /**
@@ -55,7 +55,7 @@ public enum FieldKind {
      * @deprecated Portable Serialization has been deprecated. We recommend you use Compact Serialization as Portable
      * Serialization will be removed as of version 7.0.
      */
-    @Deprecated(since = "5.4", forRemoval = false)
+    @Deprecated(since = "5.4", forRemoval = true)
     ARRAY_OF_CHAR(6),
 
     INT16(7),

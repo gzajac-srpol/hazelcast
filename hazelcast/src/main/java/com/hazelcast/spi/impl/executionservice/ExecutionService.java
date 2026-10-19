@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -122,6 +122,11 @@ public interface ExecutionService {
      * Suppliers.
      */
     String JOB_OFFLOADABLE_EXECUTOR = "hz:jet-job-offloadable";
+
+    /**
+     * Name of the vector query executor.
+     */
+    String VECTOR_QUERY_EXECUTOR = "hz:vector-query";
 
     /**
      * @param name          for the executor service

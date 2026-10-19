@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,9 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.TreeSet;
 
+import static com.hazelcast.config.ConfigXmlGeneratorTest.getNewConfigViaXMLGenerator;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(HazelcastParallelClassRunner.class)
@@ -90,6 +92,14 @@ public class XmlYamlConfigBuilderEqualsTest extends HazelcastTestSupport {
         String xmlConfigFromYaml = new ConfigXmlGenerator(true).generate(yamlConfig);
 
         assertEquals(xmlConfigFromXml, xmlConfigFromYaml);
+    }
+
+    @Test
+    public void testXmlConfigGeneratorWithFullExampleProducesSameConfig() throws IOException {
+        Config xmlConfig = getXML("hazelcast-full-example.xml");
+        Config generatedConfig = getNewConfigViaXMLGenerator(xmlConfig, false);
+
+        assertThat(xmlConfig).usingRecursiveComparison().isEqualTo(generatedConfig);
     }
 
     @Test

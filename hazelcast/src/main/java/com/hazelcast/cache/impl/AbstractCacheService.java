@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,6 @@ import com.hazelcast.spi.merge.SplitBrainMergePolicy;
 import com.hazelcast.spi.merge.SplitBrainMergePolicyProvider;
 import com.hazelcast.spi.properties.ClusterProperty;
 import com.hazelcast.wan.impl.WanReplicationService;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.cache.CacheException;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
@@ -92,7 +91,6 @@ import static com.hazelcast.internal.util.ConcurrencyUtil.CALLER_RUNS;
 import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
 import static com.hazelcast.internal.util.FutureUtil.RETHROW_EVERYTHING;
 import static com.hazelcast.internal.util.MapUtil.createHashMap;
-import static java.util.Collections.newSetFromMap;
 import static java.util.Collections.singleton;
 
 @SuppressWarnings({"checkstyle:classdataabstractioncoupling", "ClassFanOutComplexity", "MethodCount"})
@@ -130,7 +128,7 @@ public abstract class AbstractCacheService implements ICacheService,
                     CacheEntryCountResolver.createEntryCountResolver(getOrCreateCacheContext(name)));
 
     protected final ConstructorFunction<String, Set<Closeable>> cacheResourcesConstructorFunction =
-            name -> newSetFromMap(new ConcurrentHashMap<Closeable, Boolean>());
+            name -> ConcurrentHashMap.newKeySet();
 
     // mutex factory ensures each Set<Closeable> of cache resources is only constructed and inserted in resources map once
     protected final ContextMutexFactory cacheResourcesMutexFactory = new ContextMutexFactory();
@@ -229,7 +227,6 @@ public abstract class AbstractCacheService implements ICacheService,
     }
 
     @Override
-    @SuppressFBWarnings("EI_EXPOSE_REP")
     public CachePartitionSegment[] getPartitionSegments() {
         return segments;
     }
@@ -553,12 +550,12 @@ public abstract class AbstractCacheService implements ICacheService,
 
     @Override
     public void publishEvent(CacheEventContext cacheEventContext) {
-        cacheEventHandler.publishEvent(cacheEventContext);
+        cacheEventHandler.publishEntryEvent(cacheEventContext);
     }
 
     @Override
     public void publishEvent(String cacheNameWithPrefix, CacheEventSet eventSet, int orderKey) {
-        cacheEventHandler.publishEvent(cacheNameWithPrefix, eventSet, orderKey);
+        cacheEventHandler.publishEntryEvent(cacheNameWithPrefix, eventSet, orderKey);
     }
 
     @Override

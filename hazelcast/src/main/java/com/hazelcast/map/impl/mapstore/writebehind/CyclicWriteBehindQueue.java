@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -92,11 +92,12 @@ class CyclicWriteBehindQueue implements WriteBehindQueue<DelayedEntry> {
      */
     @Override
     public boolean removeFirstOccurrence(DelayedEntry entry) {
-        DelayedEntry removedEntry = deque.pollFirst();
-        if (removedEntry == null) {
+        DelayedEntry firstEntry = deque.peekFirst();
+        if (firstEntry != entry) {
             return false;
         }
-        decreaseCountIndex(entry);
+        deque.pollFirst();
+        decreaseCountIndex(firstEntry);
         return true;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -417,6 +417,9 @@ public class AbstractSerializationServiceTest {
             return typeId;
         }
 
+        @Override
+        public void destroy() {
+        }
 
         @Override
         public void write(ObjectDataOutput out, StringBuffer stringBuffer) throws IOException {

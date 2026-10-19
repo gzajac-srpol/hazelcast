@@ -1,6 +1,6 @@
 /*
  * Original work Copyright 2015 Real Logic Ltd.
- * Modified work Copyright (c) 2015-2025, Hazelcast, Inc. All Rights Reserved.
+ * Modified work Copyright (c) 2015-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,18 @@
 
 package com.hazelcast.internal.util.collection;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import javax.annotation.Nonnull;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * An iterator for a sequence of primitive integers.
  */
-@SuppressFBWarnings("EI2")
 public class LongIterator implements Iterator<Long> {
     private final long missingValue;
+    @Nonnull
     private final long[] values;
 
     private int position;
@@ -37,7 +39,7 @@ public class LongIterator implements Iterator<Long> {
      * @param missingValue to indicate the value is missing, i.e. not present or null.
      * @param values       to iterate over.
      */
-    public LongIterator(final long missingValue, final long[] values) {
+    public LongIterator(final long missingValue, @Nonnull final long[] values) {
         this.missingValue = missingValue;
         this.values = values;
     }
@@ -72,9 +74,12 @@ public class LongIterator implements Iterator<Long> {
      * @return the next long value.
      */
     public long nextValue() {
-        final long value = values[position];
-        position++;
-        return value;
+        if (hasNext()) {
+            final long value = values[position];
+            position++;
+            return value;
+        }
+        throw new NoSuchElementException();
     }
 
     void reset() {

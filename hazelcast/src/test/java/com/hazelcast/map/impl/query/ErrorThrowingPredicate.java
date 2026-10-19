@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import com.hazelcast.query.Predicate;
 import java.io.Serializable;
 import java.util.Map;
 
-public class ErrorThrowingPredicate<K, V> implements Predicate<K, V>, Serializable {
+public class ErrorThrowingPredicate implements Predicate, Serializable {
     @Override
-    public boolean apply(Map.Entry<K, V> mapEntry) {
+    public boolean apply(Map.Entry mapEntry) {
         throw new NoClassDefFoundError();
     }
 }

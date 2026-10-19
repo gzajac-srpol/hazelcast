@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ package com.hazelcast.client.config;
  *     <li>{@code MULTI_MEMBER}: Client only connects to a subset of members based on {@link RoutingStrategy}.</li>
  * </ul>
  * <p>The {@code UNKNOWN} enumeration represents a state where the client's
- * {@link RoutingMode} is not known, due to < 5.5 client versions</p>
+ * {@link RoutingMode} is not known, due to &lt; 5.5 client versions</p>
  *
- * @since 6.0
+ * @since 5.6
  */
 public enum RoutingMode {
     /**
@@ -45,7 +45,7 @@ public enum RoutingMode {
     MULTI_MEMBER(2),
 
     /**
-     * Represents an unknown routing mode, due to < 5.5 client versions
+     * Represents an unknown routing mode, due to &lt; 5.5 client versions
      * <b>Note: This mode should never be configured as a {@link RoutingMode}</b>
      */
     UNKNOWN(-1);

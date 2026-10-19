@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package com.hazelcast.instance.impl;
 
 import com.hazelcast.cluster.Address;
+import com.hazelcast.config.Config;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.HazelcastInstanceAware;
 import com.hazelcast.instance.BuildInfoProvider;
@@ -174,9 +175,8 @@ public class DefaultNodeExtensionTest extends HazelcastTestSupport {
     @Test
     public void test_joinRequestFails_whenPreviousMinorVersion() {
         assumeTrue("Minor version is 0", nodeVersion.getMinor() > 0);
-        MemberVersion nextMinorVersion = MemberVersion.of(nodeVersion.getMajor(), nodeVersion.getMinor() - 1,
-                nodeVersion.getPatch());
-        JoinRequest joinRequest = new JoinRequest(buildNumber, nextMinorVersion, joinAddress, node.getLocalMember(), emptySet());
+        MemberVersion minorMinusOne = BuildInfoProvider.getBuildInfo().getPreviousVersion();
+        JoinRequest joinRequest = new JoinRequest(buildNumber, minorMinusOne, joinAddress, node.getLocalMember(), emptySet());
 
         String message = isEnterprise ?  "Rolling Member Upgrades is not licensed"
                 : "Rolling Member Upgrades are only supported in Hazelcast Enterprise";
@@ -256,6 +256,29 @@ public class DefaultNodeExtensionTest extends HazelcastTestSupport {
         };
         makeClusterVersionUnknownAndVerifyListener(latch, failed, listener);
         System.clearProperty(ClusterProperty.INIT_CLUSTER_VERSION.getName());
+    }
+
+    @Test
+    public void test_throwsWhenAutoStepDownEnabled() {
+        Config config = getConfig();
+        config.getCPSubsystemConfig().setAutoStepDownWhenLeader(true);
+        assertThrows(IllegalStateException.class, () -> createHazelcastInstance(config));
+    }
+
+    @Test
+    public void test_throwsWhenCPPersistenceEnabled() {
+        Config config = getConfig();
+        config.getCPSubsystemConfig().setPersistenceEnabled(true);
+        assertThrows(IllegalStateException.class, () -> createHazelcastInstance(config));
+    }
+
+    @Test
+    public void test_throwsWhenMemberPriorityEnabled() {
+        Config config = getConfig();
+        config.getCPSubsystemConfig().setCPMemberPriority(1);
+        assertThrows(IllegalStateException.class, () -> createHazelcastInstance(config));
+        config.getCPSubsystemConfig().setCPMemberPriority(-1);
+        assertThrows(IllegalStateException.class, () -> createHazelcastInstance(config));
     }
 
     private void makeClusterVersionUnknownAndVerifyListener(CountDownLatch latch, AtomicBoolean failed,

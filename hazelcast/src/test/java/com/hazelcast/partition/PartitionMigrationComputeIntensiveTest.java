@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import static com.hazelcast.partition.PartitionMigrationListenerTest.assertMigra
 import static com.hazelcast.partition.PartitionMigrationListenerTest.assertMigrationProcessEventsConsistent;
 import static com.hazelcast.spi.properties.ClusterProperty.PARTITION_COUNT;
 import static com.hazelcast.spi.properties.ClusterProperty.SLOW_OPERATION_DETECTOR_STACK_TRACE_LOGGING_ENABLED;
+import static org.junit.Assert.assertEquals;
 
 @RunWith(HazelcastSerialClassRunner.class)
 @Category({NightlyTest.class})
@@ -70,11 +71,12 @@ public class PartitionMigrationComputeIntensiveTest extends HazelcastTestSupport
         LOGGER.info("Changing cluster state to NO_MIGRATION");
         changeClusterStateEventually(instances[0], ClusterState.NO_MIGRATION);
 
-        // 3 promotions on each remaining node + 1 to assign owners for lost partitions
-        for (MigrationEventsPack eventsPack : listener.ensureAndGetEventPacks(4)) {
+        // 1 aggregate promotion process + 1 process to assign owners for lost partitions
+        for (MigrationEventsPack eventsPack : listener.ensureAndGetEventPacks(2)) {
             assertMigrationProcessCompleted(eventsPack);
             assertMigrationProcessEventsConsistent(eventsPack);
             assertMigrationEventsConsistentWithResult(eventsPack);
         }
+        assertTrueAllTheTime(() -> assertEquals(2, listener.getEventPackCount()), 3);
     }
 }

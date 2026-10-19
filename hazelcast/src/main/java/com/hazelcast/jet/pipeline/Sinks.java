@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,6 +63,7 @@ import static com.hazelcast.jet.core.processor.SinkProcessors.writeSocketP;
 import static com.hazelcast.jet.datamodel.Tuple2.tuple2;
 import static com.hazelcast.jet.impl.util.ImdgUtil.asClientConfig;
 import static com.hazelcast.jet.impl.util.ImdgUtil.asXmlString;
+import static com.hazelcast.security.impl.function.SecuredFunctions.validateContext;
 import static com.hazelcast.security.permission.ActionConstants.ACTION_CREATE;
 import static com.hazelcast.security.permission.ActionConstants.ACTION_PUBLISH;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -1109,6 +1110,7 @@ public final class Sinks {
         return SinkBuilder
                 .sinkBuilder("reliableTopicSink(" + reliableTopicName + "))",
                         ctx -> {
+                            validateContext(ctx);
                             HazelcastInstance client = newHazelcastClient(asClientConfig(clientXml));
                             ITopic<T> topic = client.getReliableTopic(reliableTopicName);
                             return tuple2(client, topic);

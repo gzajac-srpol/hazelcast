@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ import static com.hazelcast.jet.core.JobStatus.SUSPENDED;
 import static com.hazelcast.jet.core.JobStatus.SUSPENDED_EXPORTING_SNAPSHOT;
 import static com.hazelcast.jet.core.metrics.MetricNames.JOB_STATUS;
 import static com.hazelcast.jet.impl.AbstractJobProxy.cannotAddStatusListener;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.peel;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.peel;
 import static com.hazelcast.jet.impl.util.Util.jobNameAndExecutionId;
 import static java.util.stream.Collectors.toConcurrentMap;
 
@@ -185,6 +185,15 @@ public class MasterContext implements DynamicMetricsProvider {
         setJobStatus(jobStatus, null, false);
     }
 
+    void setJobStatusUnderLock(JobStatus jobStatus) {
+        lock();
+        try {
+            setJobStatus(jobStatus, null, false);
+        } finally {
+            unlock();
+        }
+    }
+
     public JobConfig jobConfig() {
         return jobRecord.getConfig();
     }
@@ -294,6 +303,10 @@ public class MasterContext implements DynamicMetricsProvider {
 
     Map<MemberInfo, ExecutionPlan> executionPlanMap() {
         return executionPlanMap;
+    }
+
+    ExecutionPlan getAnyExecutionPlan() {
+        return executionPlanMap.values().stream().findAny().orElseThrow();
     }
 
     MembersView membersView() {

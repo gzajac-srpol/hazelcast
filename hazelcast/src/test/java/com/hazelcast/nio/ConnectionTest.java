@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
@@ -78,7 +77,7 @@ public class ConnectionTest extends HazelcastTestSupport {
         final AtomicInteger connected = new AtomicInteger();
         final AtomicInteger cc = new AtomicInteger();
 
-        final Set<Socket> sockets = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        final Set<Socket> sockets = ConcurrentHashMap.newKeySet();
         final Thread st = new Thread("server-socket") {
             public void run() {
                 while (!isInterrupted()) {
@@ -211,7 +210,7 @@ public class ConnectionTest extends HazelcastTestSupport {
             }
         }).start();
 
-        final Collection<Socket> sockets = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        final Collection<Socket> sockets = ConcurrentHashMap.newKeySet();
         final AtomicInteger k0 = new AtomicInteger();
         final AtomicInteger k1 = new AtomicInteger();
         for (int i = 0; i < count; i++) {

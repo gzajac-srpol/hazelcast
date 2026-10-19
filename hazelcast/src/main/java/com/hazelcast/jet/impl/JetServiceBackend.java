@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,8 +54,9 @@ import com.hazelcast.jet.impl.submitjob.memberside.JobUploadStatus;
 import com.hazelcast.jet.impl.submitjob.memberside.JobUploadStore;
 import com.hazelcast.jet.impl.submitjob.memberside.validator.JarOnClientValidator;
 import com.hazelcast.jet.impl.submitjob.memberside.validator.JarOnMemberValidator;
-import com.hazelcast.jet.impl.util.ExceptionUtil;
+import com.hazelcast.jet.impl.util.JetExceptionUtil;
 import com.hazelcast.logging.ILogger;
+import com.hazelcast.map.IMap;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.spi.impl.operationservice.LiveOperations;
@@ -65,7 +66,10 @@ import com.hazelcast.spi.merge.DiscardMergePolicy;
 import com.hazelcast.spi.merge.LatestUpdateMergePolicy;
 import com.hazelcast.spi.properties.HazelcastProperties;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.security.AccessControlException;
+import java.security.Permission;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -84,8 +88,8 @@ import static com.hazelcast.internal.util.ExceptionUtil.sneakyThrow;
 import static com.hazelcast.jet.impl.JobRepository.INTERNAL_JET_OBJECTS_PREFIX;
 import static com.hazelcast.jet.impl.JobRepository.JOB_METRICS_MAP_NAME;
 import static com.hazelcast.jet.impl.JobRepository.JOB_RESULTS_MAP_NAME;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.rethrow;
-import static com.hazelcast.jet.impl.util.Util.memoizeConcurrent;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.rethrow;
+import static com.hazelcast.internal.util.Memoizers.memoizeConcurrent;
 import static com.hazelcast.spi.properties.ClusterProperty.JOB_RESULTS_TTL_SECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -150,7 +154,7 @@ public class JetServiceBackend implements ManagedService, MembershipAwareService
         ClientEngine clientEngine = engine.getService(ClientEngineImpl.SERVICE_NAME);
         ClientExceptionFactory clientExceptionFactory = clientEngine.getExceptionFactory();
         if (clientExceptionFactory != null) {
-            ExceptionUtil.registerJetExceptions(clientExceptionFactory);
+            JetExceptionUtil.registerJetExceptions(clientExceptionFactory);
         } else {
             logger.fine("Jet exceptions are not registered to the ClientExceptionFactory%s",
                     " since the ClientExceptionFactory is not accessible.");
@@ -192,8 +196,8 @@ public class JetServiceBackend implements ManagedService, MembershipAwareService
 
     // visible for tests
     static MapConfig createSqlCatalogConfig() {
-        // TODO HZ-1743 when implemented properly align this with the chosen
-        //  approach that HZ-1743 follows
+        // TODO HZOLD-1743 when implemented properly align this with the chosen
+        //  approach that HZOLD-1743 follows
         return new MapConfig(SQL_CATALOG_MAP_NAME)
                 .setBackupCount(MapConfig.MAX_BACKUP_COUNT)
                 .setAsyncBackupCount(MapConfig.MIN_BACKUP_COUNT)
@@ -336,6 +340,15 @@ public class JetServiceBackend implements ManagedService, MembershipAwareService
         return jobRepository;
     }
 
+    public static boolean isNamespaceReferencedInActiveJobs(NodeEngine nodeEngine, String namespace) {
+        JetServiceBackend jet = nodeEngine.getServiceOrNull(JetServiceBackend.SERVICE_NAME);
+        return jet != null && jet.isNamespaceReferencedInActiveJobs(namespace);
+    }
+
+    public boolean isNamespaceReferencedInActiveJobs(String namespace) {
+        return false;
+    }
+
     public NodeEngineImpl getNodeEngine() {
         return nodeEngine;
     }
@@ -441,8 +454,8 @@ public class JetServiceBackend implements ManagedService, MembershipAwareService
     public void beforeClusterStateChange(ClusterState requestedState) {
         if (requestedState == PASSIVE) {
             try {
-                nodeEngine.getOperationService().createInvocationBuilder(JetServiceBackend.SERVICE_NAME,
-                                new PrepareForPassiveClusterOperation(), nodeEngine.getMasterAddress())
+                nodeEngine.getOperationService().createMasterInvocationBuilder(JetServiceBackend.SERVICE_NAME,
+                                new PrepareForPassiveClusterOperation())
                         .invoke().get();
             } catch (InterruptedException | ExecutionException e) {
                 throw rethrow(e);
@@ -588,5 +601,26 @@ public class JetServiceBackend implements ManagedService, MembershipAwareService
 
     private HazelcastInstance getHazelcastInstance() {
         return getNodeEngine().getHazelcastInstance();
+    }
+
+    /**
+     * Add permission checks to given IMap if needed.
+     * Should check permissions except create and read permissions
+     * which are checked by the {@link com.hazelcast.jet.pipeline.ServiceFactory} itself.
+     *
+     * @param imap              IMap to wrap
+     * @param permissionChecker consumer that will check if given permission is granted
+     *                          and throw {@link AccessControlException} if it is not
+     * @param <K>               key type
+     * @param <V>               value type
+     * @return wrapped IMap
+     *
+     * @see com.hazelcast.jet.pipeline.ServiceFactory
+     * @see com.hazelcast.security.SecureCallable
+     */
+    @Nonnull
+    public <K, V> IMap<K, V> wrapInPermissions(@Nonnull IMap<K, V> imap, @Nonnull Consumer<Permission> permissionChecker) {
+        // security is not enabled - do not wrap
+        return imap;
     }
 }

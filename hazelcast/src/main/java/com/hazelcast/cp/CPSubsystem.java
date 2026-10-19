@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -566,6 +566,15 @@ public interface CPSubsystem {
     CPSessionManagementService getCPSessionManagementService();
 
     /**
+     * Returns the {@link CPDataStructureManagementService} of this Hazelcast
+     * instance. {@link CPDataStructureManagementService} offers APIs for managing CP
+     * data structures.
+     *
+     * @return the {@link CPDataStructureManagementService} of this Hazelcast instance
+     */
+    CPDataStructureManagementService getCPDataStructureManagementService();
+
+    /**
      * Registers a new CPMembershipListener to listen CP membership changes.
      *
      * @param listener membership listener
@@ -603,7 +612,7 @@ public interface CPSubsystem {
     boolean removeGroupAvailabilityListener(UUID id);
 
     /**
-     * Returns a proxy for a {@link CPMap}. <b>Enterprise Only</b>.
+     * Returns a proxy for a {@link CPMap}.
      * <p>
      *     If no group name is given within the {@code name} parameter, then the
      *     {@link CPMap} instance will be created on the DEFAULT CP group. If a

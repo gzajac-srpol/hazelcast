@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.hazelcast.cache.impl.operation;
 
 import com.hazelcast.cache.impl.CacheDataSerializerHook;
 import com.hazelcast.cache.impl.CacheService;
+import com.hazelcast.cache.impl.ICacheService;
 import com.hazelcast.cache.impl.record.CacheRecord;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
@@ -28,7 +29,7 @@ import com.hazelcast.spi.impl.operationservice.BackupOperation;
 import java.io.IOException;
 
 import static com.hazelcast.internal.namespace.NamespaceUtil.callWithNamespace;
-import static com.hazelcast.internal.namespace.impl.NodeEngineThreadLocalContext.getNodeEngineThreadLocalContext;
+import static com.hazelcast.spi.impl.NodeEngineThreadLocalContext.getNodeEngineThreadLocalContext;
 
 /**
  * Backup operation for the operation of adding cache entries into record stores.
@@ -88,7 +89,7 @@ public class CachePutBackupOperation
     protected void readInternal(ObjectDataInput in) throws IOException {
         super.readInternal(in);
         NodeEngine nodeEngine = getNodeEngineThreadLocalContext();
-        CacheService service = nodeEngine.getService(CacheService.SERVICE_NAME);
+        ICacheService service = nodeEngine.getService(CacheService.SERVICE_NAME);
         var cacheConfig = service.getCacheConfig(this.name);
         String ucn = cacheConfig != null ? cacheConfig.getUserCodeNamespace() : null;
         cacheRecord = callWithNamespace(nodeEngine, ucn, in::readObject);

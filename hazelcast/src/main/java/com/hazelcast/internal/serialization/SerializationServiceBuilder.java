@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,11 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.ManagedContext;
 import com.hazelcast.internal.serialization.impl.ClusterVersionAware;
 import com.hazelcast.internal.serialization.impl.compact.SchemaService;
-import com.hazelcast.partition.PartitioningStrategy;
 import com.hazelcast.nio.serialization.ClassDefinition;
 import com.hazelcast.nio.serialization.DataSerializableFactory;
 import com.hazelcast.nio.serialization.PortableFactory;
+import com.hazelcast.partition.PartitioningStrategy;
+import com.hazelcast.spi.properties.HazelcastProperties;
 
 import java.nio.ByteOrder;
 import java.util.function.Supplier;
@@ -74,6 +75,8 @@ public interface SerializationServiceBuilder {
     SerializationServiceBuilder setVersionedSerializationEnabled(boolean versionedSerializationEnabled);
 
     SerializationServiceBuilder setClusterVersionAware(ClusterVersionAware clusterVersionAware);
+
+    SerializationServiceBuilder setProperties(HazelcastProperties properties);
 
     <T extends SerializationService> T build();
 }

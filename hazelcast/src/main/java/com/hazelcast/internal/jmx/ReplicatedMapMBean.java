@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,13 +86,13 @@ public class ReplicatedMapMBean extends HazelcastMBean<ReplicatedMapProxy> {
     @ManagedAnnotation("localValuesOperationCount")
     @ManagedDescription("number of values() calls on this member")
     public long getLocalValuesOperationCount() {
-        return statsDelegate.getLocalStats().getValuesCallsCount();
+        return statsDelegate.getLocalStats().getValuesCallCount();
     }
 
     @ManagedAnnotation("localEntrySetOperationCount")
     @ManagedDescription("number of entrySet() calls on this member")
     public long getLocalEntrySetOperationCount() {
-        return statsDelegate.getLocalStats().getEntrySetCallsCount();
+        return statsDelegate.getLocalStats().getEntrySetCallCount();
     }
 
     @ManagedAnnotation("localTotalPutLatency")

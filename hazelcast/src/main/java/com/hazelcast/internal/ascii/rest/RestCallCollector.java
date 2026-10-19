@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ public class RestCallCollector {
     private final MwCounter queueTotalRequestCount = MwCounter.newMwCounter();
 
     private final MwCounter configUpdateSuccCount = MwCounter.newMwCounter();
-    private final MwCounter configUpdateFailCount = MwCounter.newMwCounter();;
+    private final MwCounter configUpdateFailCount = MwCounter.newMwCounter();
     private final MwCounter configReloadSuccCount = MwCounter.newMwCounter();
     private final MwCounter configReloadFailCount = MwCounter.newMwCounter();
 

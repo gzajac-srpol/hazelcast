@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,10 @@
 
 package com.hazelcast.test.starter;
 
+import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
 import static com.hazelcast.internal.util.Preconditions.checkState;
 import static com.hazelcast.internal.util.StringUtil.isNullOrEmpty;
+import static com.hazelcast.internal.util.Memoizers.memoizeConcurrent;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -30,8 +32,9 @@ import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.LocalRepositoryManager;
 import org.eclipse.aether.repository.NoLocalRepositoryManagerException;
 
+import org.eclipse.aether.spi.localrepo.LocalRepositoryManagerFactory;
 import com.hazelcast.internal.tpcengine.util.OS;
-import com.hazelcast.jet.impl.util.ConcurrentMemoizingSupplier;
+import com.hazelcast.internal.util.concurrent.ConcurrentMemoizingSupplier;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,7 +52,7 @@ import java.util.stream.Stream;
 public class MavenInterface {
     /** The path to the {@code mvn} executable */
     private static final ConcurrentMemoizingSupplier<String> MVN =
-            new ConcurrentMemoizingSupplier<>(() -> {
+            memoizeConcurrent(() -> {
                 Path path = Paths.get(".")
                         .toAbsolutePath();
 
@@ -72,12 +75,13 @@ public class MavenInterface {
     static {
         try {
             final DefaultLocalRepositoryProvider repositoryProvider = new DefaultLocalRepositoryProvider(
-                    Collections.singleton(new SimpleLocalRepositoryManagerFactory(new DefaultLocalPathComposer())));
+                    Collections.<String, LocalRepositoryManagerFactory>singletonMap(MavenInterface.class.getName(),
+                            new SimpleLocalRepositoryManagerFactory(new DefaultLocalPathComposer())));
 
             MAVEN_REPOSITORY = Paths.get(evaluateExpression("settings.localRepository"));
 
             if (Files.exists(MAVEN_REPOSITORY)) {
-                final LocalRepository localRepo = new LocalRepository(MAVEN_REPOSITORY.toFile());
+                final LocalRepository localRepo = new LocalRepository(MAVEN_REPOSITORY);
                 REPOSITORY_MANAGER = repositoryProvider.newLocalRepositoryManager(MavenRepositorySystemUtils.newSession(),
                         localRepo);
             } else {
@@ -160,24 +164,30 @@ public class MavenInterface {
     }
 
     /** @return a {@link String} output of {@code mvn help:evaluate -Dexpression=EXPRESSION} */
-    public static String evaluateExpression(String expression) throws IOException {
+    public static String evaluateExpression(String expression) {
         // Ideally you'd run this using the maven-invoker plugin, but I couldn't get this to work -
         // https://stackoverflow.com/q/76866880
         // We use `--quiet` to only output the expression result
         ProcessBuilder processBuilder =
-                new ProcessBuilder(MVN.get(), "help:evaluate", "--quiet", "-Dexpression=" + expression, "-DforceStdout");
+                new ProcessBuilder(MVN.get(), "help:evaluate", "--quiet", "-Dexpression=" + expression, "-DforceStdout", "--raw-streams");
         configureMavenEnvironment(processBuilder);
 
-        try (InputStream stream = processBuilder.start()
-                .getInputStream()) {
-            List<String> output = IOUtils.readLines(stream, StandardCharsets.UTF_8);
+        try {
+            Process process = processBuilder.start();
 
-            if (output.size() == 1) {
-                return output.get(0);
-            } else {
-                throw new IOException("Maven expression (\"%s\") returned unexpected response:%n%s".formatted(expression,
-                        String.join(System.lineSeparator(), output)));
+            try (InputStream inputStream = process.getInputStream(); InputStream errorStream = process.getErrorStream()) {
+                List<String> output = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
+
+                if (output.size() == 1) {
+                    return output.get(0);
+                } else {
+                    throw new IOException("Maven expression (\"%s\") returned unexpected response:%n%s%n%s".formatted(
+                            expression, String.join(System.lineSeparator(), output),
+                            String.join(System.lineSeparator(), IOUtils.readLines(errorStream, StandardCharsets.UTF_8))));
+                }
             }
+        } catch (IOException e) {
+            throw rethrow(e);
         }
     }
 }

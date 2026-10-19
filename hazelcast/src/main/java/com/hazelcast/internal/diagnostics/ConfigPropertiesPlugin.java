@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,9 +84,12 @@ public class ConfigPropertiesPlugin extends DiagnosticsPlugin {
             writer.writeKeyValueEntry(key, value);
         }
 
-        Map<String, String> pluginProperties = nodeEngine.getDiagnostics().getDiagnosticsConfig().getPluginProperties();
-        for (Map.Entry<String, String> entry : pluginProperties.entrySet()) {
-            writer.writeKeyValueEntry(entry.getKey(), entry.getValue());
+        // If diagnostics belong to client, then there is no nodeEngine.
+        if (nodeEngine != null) {
+            Map<String, String> pluginProperties = nodeEngine.getDiagnostics().getDiagnosticsConfig().getPluginProperties();
+            for (Map.Entry<String, String> entry : pluginProperties.entrySet()) {
+                writer.writeKeyValueEntry(entry.getKey(), entry.getValue());
+            }
         }
 
         writer.endSection();

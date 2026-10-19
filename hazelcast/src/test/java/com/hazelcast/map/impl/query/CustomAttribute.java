@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ import java.io.Serializable;
 
 public class CustomAttribute implements Serializable, Comparable<CustomAttribute> {
 
-    private final int age;
-    private final long height;
+    private int age;
+    private long height;
 
     public CustomAttribute(int age, long height) {
         this.age = age;
@@ -48,7 +48,11 @@ public class CustomAttribute implements Serializable, Comparable<CustomAttribute
         if (age != that.age) {
             return false;
         }
-        return height == that.height;
+        if (height != that.height) {
+            return false;
+        }
+
+        return true;
     }
 
     @Override

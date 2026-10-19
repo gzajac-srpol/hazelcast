@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ public abstract class JetSplitBrainTestSupport extends JetTestSupport {
 
     /**
      * If new nodes have been created during split brain via
-     * {@link #createHazelcastInstanceInBrain(HazelcastInstance[], HazelcastInstance[], boolean)}, then their joiners
+     * {@link SplitBrainTestSupport#createHazelcastInstanceInBrain(int)}, then their joiners
      * are initialized with the other brain's addresses being blacklisted.
      */
     private boolean unblacklistHint;

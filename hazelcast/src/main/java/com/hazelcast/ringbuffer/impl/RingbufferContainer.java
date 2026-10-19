@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ import static com.hazelcast.config.InMemoryFormat.OBJECT;
 import static com.hazelcast.config.InMemoryFormat.values;
 import static com.hazelcast.internal.namespace.NamespaceUtil.callWithNamespace;
 import static com.hazelcast.internal.namespace.NamespaceUtil.runWithNamespace;
+import static com.hazelcast.spi.properties.ClusterProperty.EVENT_JOURNAL_CLEANUP_THRESHOLD;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
@@ -74,6 +75,7 @@ public class RingbufferContainer<T, E> implements IdentifiedDataSerializable, No
     private RingbufferStoreWrapper store;
     private SerializationService serializationService;
     private String userCodeNamespace;
+    private int cleanupThreshold;
 
     /**
      * The ringbuffer containing the items. The type of contained items depends
@@ -150,6 +152,9 @@ public class RingbufferContainer<T, E> implements IdentifiedDataSerializable, No
         this.userCodeNamespace = config.getUserCodeNamespace();
         this.serializationService = nodeEngine.getSerializationService();
         initRingbufferStore(NamespaceUtil.getClassLoaderForNamespace(nodeEngine, config.getUserCodeNamespace()), nodeEngine);
+        this.cleanupThreshold = (int) (
+                config.getCapacity() * nodeEngine.getProperties().getFloat(EVENT_JOURNAL_CLEANUP_THRESHOLD)
+        );
     }
 
     private void initRingbufferStore(ClassLoader classLoader, NodeEngine nodeEngine) {
@@ -442,6 +447,12 @@ public class RingbufferContainer<T, E> implements IdentifiedDataSerializable, No
         }
     }
 
+    public void maybeCleanup() {
+        if (expirationPolicy != null && remainingCapacity() < cleanupThreshold) {
+            expirationPolicy.cleanup(ringbuffer);
+        }
+    }
+
     public boolean isStaleSequence(long sequence) {
         return sequence < headSequence() && !store.isEnabled();
     }
@@ -675,12 +686,13 @@ public class RingbufferContainer<T, E> implements IdentifiedDataSerializable, No
     }
 
     /**
-     * Deprecated since 5.4 due to ambiguity between User Code Namespaces (used in
-     * most data structures) and ObjectNamespaces not used in most data structures
+     * @deprecated due to ambiguity between User Code Namespaces (used in
+     * most data structures) and ObjectNamespaces not used in most data structures.
+     * Use {@link #getObjectNamespace()} instead.
      *
      * @return This container's {@link ObjectNamespace}
      */
-    @Deprecated(since = "5.4")
+    @Deprecated(since = "5.4", forRemoval = true)
     public ObjectNamespace getNamespace() {
         return objectNamespace;
     }

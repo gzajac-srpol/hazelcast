@@ -1,4 +1,4 @@
-# Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+# Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -639,11 +639,24 @@ hazelcast:
         - serializer: com.hazelcast.examples.DummyTypeSerializer
       classes:
         - class: com.hazelcast.examples.DummyType
+      zero-config-filter:
+        defaults-disabled: false
+        blacklist:
+          class:
+            - com.acme.app.BeanComparator
+        whitelist:
+          class:
+            - example.Foo
+          package:
+            - com.acme.app
+            - com.acme.app.subpkg
+          prefix:
+            - com.acme.
 
   native-memory:
     allocator-type: STANDARD
     enabled: true
-    size:
+    capacity:
       unit: MEGABYTES
       value: 256
     min-block-size: 128
@@ -1017,6 +1030,7 @@ hazelcast:
     base-dir: data
     data-load-timeout-seconds: 30
     cp-member-priority: -1
+    auto-step-down-when-leader: true
     raft-algorithm:
       leader-election-timeout-in-millis: 2000
       leader-heartbeat-period-in-millis: 5000
@@ -1038,8 +1052,10 @@ hazelcast:
     maps:
       map1:
         max-size-mb: 50
+        purge-enabled: false
       map2:
         max-size-mb: 25
+        purge-enabled: true
 
   auditlog:
     enabled: false

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 
 /**
- * @deprecated since 5.4, "User Code Deployment" is replaced by the "User Code Namespaces" feature
+ * @deprecated "User Code Deployment" is replaced by the "User Code Namespaces" feature
  * @see UserCodeNamespaceService
  */
 @Deprecated(since = "5.4", forRemoval = true)

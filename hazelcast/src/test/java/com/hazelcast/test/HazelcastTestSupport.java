@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,16 @@ package com.hazelcast.test;
 
 import com.google.common.collect.Lists;
 import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.cluster.Address;
 import com.hazelcast.cluster.Cluster;
 import com.hazelcast.cluster.ClusterState;
 import com.hazelcast.cluster.Member;
+import com.hazelcast.config.ClassFilter;
+import com.hazelcast.config.CompactSerializationConfig;
 import com.hazelcast.config.Config;
+import com.hazelcast.config.JavaSerializationFilterConfig;
+import com.hazelcast.config.SerializationConfig;
 import com.hazelcast.core.DistributedObject;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
@@ -31,6 +36,9 @@ import com.hazelcast.instance.BuildInfoProvider;
 import com.hazelcast.instance.impl.Node;
 import com.hazelcast.instance.impl.TestUtil;
 import com.hazelcast.internal.cluster.impl.ClusterServiceImpl;
+import com.hazelcast.internal.metrics.MetricDescriptor;
+import com.hazelcast.internal.metrics.MetricsRegistry;
+import com.hazelcast.internal.metrics.impl.CapturingCollector;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.partition.IPartition;
 import com.hazelcast.internal.partition.InternalPartitionService;
@@ -61,13 +69,12 @@ import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.AssumptionViolatedException;
-import org.junit.ClassRule;
-import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.experimental.categories.Category;
 import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.AfterEach;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -79,12 +86,14 @@ import java.lang.reflect.Modifier;
 import java.nio.ByteOrder;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
@@ -113,11 +122,12 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
@@ -144,9 +154,6 @@ public abstract class HazelcastTestSupport {
     private static final boolean EXPECT_DIFFERENT_HASHCODES = (new Object().hashCode() != new Object().hashCode());
     private static final ILogger LOGGER = Logger.getLogger(HazelcastTestSupport.class);
 
-    @ClassRule
-    public static MobyNamingRule mobyNamingRule = new MobyNamingRule();
-
     @Rule
     public JitterRule jitterRule = new JitterRule();
 
@@ -158,6 +165,22 @@ public abstract class HazelcastTestSupport {
 
     private TestHazelcastInstanceFactory factory;
 
+    /**
+     * Blocks until all futures in the list return {@code .get()} or one of them fails.
+     */
+    public static void waitForAll(@Nonnull List<Future<?>> futures) {
+        for (Future<?> future : futures) {
+            try {
+                future.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException("Task execution failed", e.getCause());
+            }
+        }
+    }
+
     static {
         ASSERT_TRUE_EVENTUALLY_TIMEOUT = getInteger("hazelcast.assertTrueEventually.timeout", 120);
         ASSERT_TRUE_EVENTUALLY_TIMEOUT_DURATION = Duration.ofSeconds(ASSERT_TRUE_EVENTUALLY_TIMEOUT);
@@ -166,7 +189,6 @@ public abstract class HazelcastTestSupport {
         LOGGER.fine("ASSERT_COMPLETES_STALL_TOLERANCE = %s", ASSERT_COMPLETES_STALL_TOLERANCE);
         String pmemDirectories = System.getProperty("hazelcast.persistent.memory");
         PERSISTENT_MEMORY_DIRECTORIES = pmemDirectories != null ? pmemDirectories : "/tmp/pmem0,/tmp/pmem1";
-        ClusterProperty.METRICS_COLLECTION_FREQUENCY.setSystemProperty("1");
         ClusterProperty.METRICS_DEBUG.setSystemProperty("true");
         Assertions.setMaxStackTraceElementsDisplayed(100);
     }
@@ -220,12 +242,14 @@ public abstract class HazelcastTestSupport {
     public static Config shrinkInstanceConfig(Config config) {
         smallInstanceConfigWithoutJetAndMetrics(config);
         config.getMetricsConfig().setEnabled(true);
+        config.getMetricsConfig().setCollectionFrequencySeconds(1);
         config.getJetConfig().setEnabled(true).setCooperativeThreadCount(2);
         return config;
     }
 
     public static Config regularInstanceConfig() {
         Config config = new Config();
+        config.getMetricsConfig().setCollectionFrequencySeconds(1);
         config.getJetConfig().setEnabled(true);
         return config;
     }
@@ -239,6 +263,26 @@ public abstract class HazelcastTestSupport {
 
     protected Config getConfig() {
         return regularInstanceConfig();
+    }
+
+    public static Config addToCompactSerializationAllowList(Config config, Class<?>... classes) {
+        addToCompactSerializationAllowList(config.getSerializationConfig(), classes);
+        return config;
+    }
+
+    public static ClientConfig addToCompactSerializationAllowList(ClientConfig config, Class<?>... classes) {
+        addToCompactSerializationAllowList(config.getSerializationConfig(), classes);
+        return config;
+    }
+
+    public static SerializationConfig addToCompactSerializationAllowList(SerializationConfig config, Class<?>... classes) {
+        CompactSerializationConfig compactConfig = config.getCompactSerializationConfig();
+        if (compactConfig.getZeroConfigFilter() == null) {
+            compactConfig.setZeroConfigFilter(new JavaSerializationFilterConfig());
+        }
+        ClassFilter allowList = compactConfig.getZeroConfigFilter().getWhitelist();
+        Arrays.stream(classes).forEach(cls -> allowList.addClasses(cls.getName()));
+        return config;
     }
 
     // ###############################################
@@ -840,18 +884,30 @@ public abstract class HazelcastTestSupport {
         }
     }
 
+    /**
+     * alternative implementation of {@link org.assertj.core.api.AbstractIterableAssert#contains(Object...)} that does not rely
+     * on an implementation of {@link Collection#iterator()}
+     */
     public static <E> void assertContains(Collection<E> collection, E expected) {
         if (!collection.contains(expected)) {
             fail(format("Collection %s (%d) didn't contain expected '%s'", collection, collection.size(), expected));
         }
     }
 
+    /**
+     * alternative implementation of {@link org.assertj.core.api.AbstractIterableAssert#doesNotContain(Object...)} that does not
+     * rely on an implementation of {@link Collection#iterator()}
+     */
     public static <E> void assertNotContains(Collection<E> actual, E notExpected) {
         if (actual.contains(notExpected)) {
             fail(format("Collection %s (%d) contained unexpected '%s'", actual, actual.size(), notExpected));
         }
     }
 
+    /**
+     * alternative implementation of {@link org.assertj.core.api.AbstractIterableAssert#containsAll(Iterable)} that does not
+     * rely on an implementation of {@link Collection#iterator()}
+     */
     public static <E> void assertContainsAll(Collection<E> actual, Collection<E> expected) {
         if (!actual.containsAll(expected)) {
             fail(format("Collection %s (%d) didn't contain expected %s (%d)",
@@ -861,40 +917,34 @@ public abstract class HazelcastTestSupport {
 
     public static <E> void assertNotContainsAll(Collection<E> actual, Collection<E> notExpected) {
         if (actual.containsAll(notExpected)) {
-            fail(format("Collection %s (%d) contained unexpected %s (%d)",
-                    actual, actual.size(), notExpected, notExpected.size()));
+            fail("Collection %s (%d) contained unexpected %s (%d)", actual, actual.size(), notExpected, notExpected.size());
         }
     }
 
+    /** @see org.assertj.core.api.AbstractCharSequenceAssert#contains(CharSequence...) */
     public static void assertContains(String actual, String expected) {
-        if (actual == null || !actual.contains(expected)) {
-            fail(format("'%s' didn't contain expected '%s'", actual, expected));
-        }
+        assertThat(actual).contains(expected);
     }
 
+    /** @see org.assertj.core.api.AbstractCharSequenceAssert#doesNotContain(CharSequence...) */
     public static void assertNotContains(String actual, String notExpected) {
-        if (actual.contains(notExpected)) {
-            fail(format("'%s' contained unexpected '%s'", actual, notExpected));
-        }
+        assertThat(actual).doesNotContain(notExpected);
     }
 
+    /** @see org.assertj.core.api.AbstractCharSequenceAssert#startsWith(CharSequence) */
     public static void assertStartsWith(String expected, String actual) {
-        if (actual != null && actual.startsWith(expected)) {
-            return;
-        }
-        if (expected != null && actual != null) {
-            throw new ComparisonFailure("", expected, actual);
-        }
-        fail(formatAssertMessage(expected, null));
+        assertThat(actual).startsWith(expected);
     }
 
+    /**
+     * alternative implementation of {@link org.assertj.core.api.AbstractMapAssert#isEqualTo(Object)} that queries via
+     * {@link Properties#stringPropertyNames()}}
+     */
     public static void assertPropertiesEquals(Properties expected, Properties actual) {
-        if (expected == null && actual == null) {
-            return;
-        }
-
-        if (expected == null || actual == null) {
-            fail(formatAssertMessage(expected, actual));
+        if (expected == null) {
+            assertNull(actual);
+        } else {
+            assertNotNull(actual);
         }
 
         for (String key : expected.stringPropertyNames()) {
@@ -905,27 +955,6 @@ public abstract class HazelcastTestSupport {
             assertEquals("Unexpected value for key " + key + " from actual object", expected.getProperty(key),
                     actual.getProperty(key));
         }
-    }
-
-    private static String formatAssertMessage(Object expected, Object actual) {
-        StringBuilder assertMessage = new StringBuilder();
-        String expectedString = String.valueOf(expected);
-        String actualString = String.valueOf(actual);
-        if (expectedString.equals(actualString)) {
-            assertMessage.append("expected: ");
-            formatClassAndValue(assertMessage, expected, expectedString);
-            assertMessage.append(" but was: ");
-            formatClassAndValue(assertMessage, actual, actualString);
-        } else {
-            assertMessage.append("expected: <").append(expectedString)
-                    .append("> but was: <").append(actualString).append(">");
-        }
-        return assertMessage.toString();
-    }
-
-    private static void formatClassAndValue(StringBuilder message, Object value, String valueString) {
-        message.append((value == null) ? "null" : value.getClass().getName())
-                .append("<").append(valueString).append(">");
     }
 
     @SuppressWarnings("unchecked")
@@ -961,10 +990,9 @@ public abstract class HazelcastTestSupport {
         }
     }
 
+    /** @see org.assertj.core.api.AbstractIterableAssert#containsExactlyInAnyOrderElementsOf(Iterable) */
     protected static <T> void assertCollection(Collection<T> expected, Collection<T> actual) {
-        assertEquals(String.format("Expected collection: `%s`, actual collection: `%s`", expected, actual),
-                expected.size(), actual.size());
-        assertContainsAll(expected, actual);
+        assertThat(actual).containsExactlyInAnyOrderElementsOf(expected);
     }
 
     protected static <T> void assertCollection(Collection<T> expected, Collection<T> actual, Comparator<T> comparator) {
@@ -977,16 +1005,9 @@ public abstract class HazelcastTestSupport {
         }
     }
 
-    public static void assertIterableEquals(Iterable<?> actual, Object... expected) {
-        List<Object> actualList = new ArrayList<>();
-        for (Object object : actual) {
-            actualList.add(object);
-        }
-
-        var expectedList = asList(expected);
-
-        assertEquals("size should match", expectedList.size(), actualList.size());
-        assertEquals(expectedList, actualList);
+    /** @see org.assertj.core.api.AbstractIterableAssert#containsExactly(Object...) */
+    public static <T> void assertIterableEquals(Iterable<T> actual, T... expected) {
+        assertThat(actual).containsExactly(expected);
     }
 
     public static void assertCompletesEventually(final Future<?> future) {
@@ -1002,7 +1023,7 @@ public abstract class HazelcastTestSupport {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         } catch (TimeoutException e) {
-            fail(String.format("Future has not completed - %s", e));
+            fail("Future has not completed - %s", e);
         }
     }
 
@@ -1053,10 +1074,14 @@ public abstract class HazelcastTestSupport {
 
     public static void assertClusterSize(int expectedSize, HazelcastInstance... instances) {
         for (int i = 0; i < instances.length; i++) {
-            int clusterSize = getClusterSize(instances[i]);
+            HazelcastInstance instance = instances[i];
+            if (instance == null) {
+                continue;
+            }
+            int clusterSize = getClusterSize(instance);
             if (expectedSize != clusterSize) {
-                fail(format("Cluster size is not correct. Expected: %d, actual: %d, instance index: %d",
-                        expectedSize, clusterSize, i));
+                fail("Cluster size is not correct. Expected: %d, actual: %d, instance index: %d",
+                        expectedSize, clusterSize, i);
             }
         }
     }
@@ -1377,7 +1402,8 @@ public abstract class HazelcastTestSupport {
      * @param actual   actual value which is used for assert
      */
     public static void assertEqualsStringFormat(String message, Object expected, Object actual) {
-        assertEquals(format(message, expected, actual), expected, actual);
+        assertThat(actual).as(message, expected, actual)
+                .isEqualTo(expected);
     }
 
     /**
@@ -1389,7 +1415,8 @@ public abstract class HazelcastTestSupport {
      * @param actual   actual value which is used for assert
      */
     public static void assertNotEqualsStringFormat(String message, Object expected, Object actual) {
-        assertNotEquals(format(message, expected, actual), expected, actual);
+        assertThat(actual).as(message, expected, actual)
+                .isNotEqualTo(expected);
     }
 
     /** @see org.assertj.core.api.AbstractLongAssert#isBetween(Long, Long) */
@@ -1461,6 +1488,22 @@ public abstract class HazelcastTestSupport {
     public static void assertThatIsNotMultithreadedTest() {
         assertThat(Thread.currentThread()).as("Test cannot run with parallel runner")
                 .isNotInstanceOf(MultithreadedTestRunnerThread.class);
+    }
+
+    public static void assertLastMetricValue(NodeEngine engine, int value, MetricDescriptor... metrics) {
+        MetricsRegistry metricsRegistry = engine.getMetricsRegistry();
+        CapturingCollector collector = new CapturingCollector();
+        metricsRegistry.collect(collector);
+
+        for (MetricDescriptor metric : metrics) {
+            CapturingCollector.Capture capture = collector.captures().get(metric);
+            if (capture == null) {
+                assertEquals("Metric " + metric + " not collected, but non-zero value expected!", 0, value);
+            } else {
+                List<Number> values = capture.values();
+                assertEquals("Metric " + metric + " had unexpected last value", value, values.get(values.size() - 1).intValue());
+            }
+        }
     }
 
     // ###################################
@@ -1563,7 +1606,11 @@ public abstract class HazelcastTestSupport {
     // ########## read from backup utils ##########
     // ############################################
 
-    protected Object readFromMapBackup(HazelcastInstance instance, String mapName, Object key) {
+    public static Object readFromMapBackup(HazelcastInstance instance, String mapName, Object key) {
+        return readFromMapBackup(instance, mapName, key, 1);
+    }
+
+    public static Object readFromMapBackup(HazelcastInstance instance, String mapName, Object key, int replicaIndex) {
         try {
             NodeEngine nodeEngine = Accessors.getNode(instance).getNodeEngine();
             SerializationService ss = Accessors.getNode(instance).getSerializationService();
@@ -1571,7 +1618,7 @@ public abstract class HazelcastTestSupport {
 
             MapOperation get = getMapOperationProvider(instance, mapName).createGetOperation(mapName, ss.toData(key));
             get.setPartitionId(partitionId);
-            get.setReplicaIndex(1);
+            get.setReplicaIndex(replicaIndex);
 
             return Accessors.getNode(instance).getNodeEngine().getOperationService().invokeOnPartition(get).get();
         } catch (Exception ex) {
@@ -1579,7 +1626,7 @@ public abstract class HazelcastTestSupport {
         }
     }
 
-    protected MapOperationProvider getMapOperationProvider(HazelcastInstance instance, String mapName) {
+    public static MapOperationProvider getMapOperationProvider(HazelcastInstance instance, String mapName) {
         MapService mapService = Accessors.getNodeEngineImpl(instance).getService(MapService.SERVICE_NAME);
         return mapService.getMapServiceContext().getMapOperationProvider(mapName);
     }
@@ -1629,8 +1676,18 @@ public abstract class HazelcastTestSupport {
     public static void assumeConfiguredByteOrder(InternalSerializationService serializationService,
                                                  ByteOrder assumedByteOrder) {
         ByteOrder configuredByteOrder = serializationService.getByteOrder();
-        assumeTrue(format("Assumed configured byte order %s, but was %s", assumedByteOrder, configuredByteOrder),
-                configuredByteOrder.equals(assumedByteOrder));
+        assumeThat(configuredByteOrder)
+                .as("Assumed configured byte order %s, but was %s", assumedByteOrder, configuredByteOrder)
+                .isEqualTo(assumedByteOrder);
+    }
+
+    /**
+     * Zing (Azul Prime) has problems with mocks of some internal objects, like Node or HazelcastInstance.
+     * If the tests are using such mocks and cannot avoid them, Zing should be excluded from tested JVMs.
+     */
+    public static void assumeNotZing() {
+        String javaVmName = System.getProperty("java.vm.name");
+        assumeThat(javaVmName.toLowerCase(Locale.ROOT)).doesNotContain("zing");
     }
 
     /**

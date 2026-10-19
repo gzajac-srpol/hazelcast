@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,11 +46,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-import java.util.stream.Collectors;
 
 import static com.hazelcast.internal.util.StringUtil.isBoolean;
-import static com.hazelcast.mapstore.ExistingMappingValidator.validateColumn;
-import static com.hazelcast.mapstore.ExistingMappingValidator.validateColumnsExist;
 import static com.hazelcast.mapstore.FromSqlRowConverter.toGenericRecord;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -151,7 +148,7 @@ public class GenericMapLoader<K, V> implements MapLoader<K, V>, MapLoaderLifecyc
     private long initTimeoutMillis;
 
     // uses initFinished latch to ensure visibility
-    private Exception initFailure;
+    private Throwable initFailure;
 
     private final CountDownLatch initFinished = new CountDownLatch(1);
 
@@ -229,7 +226,7 @@ public class GenericMapLoader<K, V> implements MapLoader<K, V>, MapLoaderLifecyc
             );
 
             readExistingMapping();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             // We create the mapping on the first member initializing this object
             // Other members trying to concurrently initialize will fail and just read the mapping
             if (e.getMessage() != null && e.getMessage().startsWith("Mapping or view already exists:")) {
@@ -246,12 +243,13 @@ public class GenericMapLoader<K, V> implements MapLoader<K, V>, MapLoaderLifecyc
     private List<SqlColumnMetadata> resolveMappingColumns() {
         // Create a temporary mapping
         String tempMapping = "temp_mapping_" + UuidUtil.newUnsecureUuidString();
+        final String idColumn = genericMapStoreProperties.idColumn;
         mappingHelper.createMapping(
                 tempMapping,
                 genericMapStoreProperties.tableName,
                 null,
                 genericMapStoreProperties.dataConnectionRef,
-                genericMapStoreProperties.idColumn
+                idColumn
         );
 
         List<SqlColumnMetadata> allColumnsMetadataList = mappingHelper.loadColumnMetadataFromMapping(tempMapping);
@@ -261,9 +259,10 @@ public class GenericMapLoader<K, V> implements MapLoader<K, V>, MapLoaderLifecyc
                 .stream()
                 .collect(toMap(SqlColumnMetadata::getName, identity()));
 
+        genericMapStoreProperties.validateColumns(columnMap);
         return genericMapStoreProperties.getAllColumns().stream()
-                                        .map(columnName -> validateColumn(columnMap, columnName))
-                                        .collect(Collectors.toList());
+                                        .map(columnMap::get)
+                                        .toList();
     }
 
     private void readExistingMapping() {
@@ -278,7 +277,7 @@ public class GenericMapLoader<K, V> implements MapLoader<K, V>, MapLoaderLifecyc
             Map<String, SqlColumnMetadata> columnMap = columnMetadata
                     .stream()
                     .collect(toMap(SqlColumnMetadata::getName, identity()));
-            validateColumnsExist(columnMap, genericMapStoreProperties.getAllColumns());
+            genericMapStoreProperties.validateColumns(columnMap);
 
             columnMetadataList = columnMetadata;
             queries = new Queries(mappingName, genericMapStoreProperties.idColumn, columnMetadata);
@@ -378,6 +377,7 @@ public class GenericMapLoader<K, V> implements MapLoader<K, V>, MapLoaderLifecyc
         awaitSuccessfulInit();
 
         String sql = queries.loadAllKeys();
+        //noinspection resource
         SqlResult keysResult = sqlService.execute(sql);
 
         // The contract for loadAllKeys says that if iterator implements Closable

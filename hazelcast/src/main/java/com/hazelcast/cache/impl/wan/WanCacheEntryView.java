@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,11 +38,13 @@ import java.util.Objects;
  * @param <V> the type of value.
  */
 public class WanCacheEntryView<K, V> implements CacheEntryView<K, V>, IdentifiedDataSerializable, SerializationServiceAware {
-
+    @Nonnull
     private SerializationService serializationService;
     private K key;
     private V value;
+    @Nonnull
     private Data dataKey;
+    @Nullable
     private Data dataValue;
     /** @see com.hazelcast.wan.impl.InternalWanEvent#getCreationTime() */
     private long creationTime;
@@ -168,7 +170,7 @@ public class WanCacheEntryView<K, V> implements CacheEntryView<K, V>, Identified
                 && lastAccessTime == that.lastAccessTime
                 && hits == that.hits
                 && dataKey.equals(that.dataKey)
-                && dataValue.equals(that.dataValue);
+                && Objects.equals(dataValue, that.dataValue);
     }
 
     @Override

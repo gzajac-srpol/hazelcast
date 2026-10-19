@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +19,9 @@ package com.hazelcast.mapstore.mariadb;
 import com.hazelcast.mapstore.GenericMapStoreIT;
 import com.hazelcast.test.annotation.NightlyTest;
 import com.hazelcast.test.jdbc.MariaDBDatabaseProvider;
-import org.junit.BeforeClass;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.BeforeAll;
 
-@Category({NightlyTest.class})
+@NightlyTest
 public class MariaDBGenericMapStoreIT extends GenericMapStoreIT {
 
     public MariaDBGenericMapStoreIT() {
@@ -30,7 +29,7 @@ public class MariaDBGenericMapStoreIT extends GenericMapStoreIT {
     }
 
     // Shadow the parent's @BeforeClass method by using the same method name
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() {
         initializeBeforeClass(new MariaDBDatabaseProvider());
     }

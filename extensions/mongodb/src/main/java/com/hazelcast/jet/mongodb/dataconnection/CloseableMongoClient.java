@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.hazelcast.jet.mongodb.dataconnection;
 
 import com.mongodb.ClientBulkWriteException;
 import com.mongodb.ClientSessionOptions;
+import com.mongodb.MongoDriverInformation;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
@@ -249,5 +250,10 @@ class CloseableMongoClient implements MongoClient {
     public ClientBulkWriteResult bulkWrite(ClientSession clientSession, List<? extends ClientNamespacedWriteModel> models,
             ClientBulkWriteOptions options) throws ClientBulkWriteException {
         return delegate.bulkWrite(clientSession, models, options);
+    }
+
+    @Override
+    public void appendMetadata(MongoDriverInformation mongoDriverInformation) {
+        delegate.appendMetadata(mongoDriverInformation);
     }
 }

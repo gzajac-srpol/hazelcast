@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,7 @@ import com.hazelcast.map.IMap;
 import com.hazelcast.map.LocalMapStats;
 import com.hazelcast.map.MapInterceptor;
 import com.hazelcast.map.impl.EntryEventFilter;
+import com.hazelcast.map.impl.IMapInternal;
 import com.hazelcast.map.impl.MapEntries;
 import com.hazelcast.map.impl.MapService;
 import com.hazelcast.map.impl.MapServiceContext;
@@ -88,6 +89,7 @@ import com.hazelcast.spi.impl.InitializingObject;
 import com.hazelcast.spi.impl.InternalCompletableFuture;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.spi.impl.eventservice.EventFilter;
+import com.hazelcast.spi.impl.operationexecutor.OperationExecutor;
 import com.hazelcast.spi.impl.operationservice.BinaryOperationFactory;
 import com.hazelcast.spi.impl.operationservice.InvocationBuilder;
 import com.hazelcast.spi.impl.operationservice.Operation;
@@ -145,7 +147,7 @@ import static java.util.Collections.singletonMap;
 @SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "MethodCount"})
 abstract class MapProxySupport<K, V>
         extends AbstractDistributedObject<MapService>
-        implements IMap<K, V>, InitializingObject {
+        implements IMapInternal<K, V>, InitializingObject {
 
     protected static final String NULL_KEY_IS_NOT_ALLOWED = "Null key is not allowed!";
     protected static final String NULL_KEYS_ARE_NOT_ALLOWED = "Null keys collection is not allowed!";
@@ -899,13 +901,22 @@ abstract class MapProxySupport<K, V>
         if (dataKeys.isEmpty()) {
             toDataCollectionWithNonNullKeyValidation(keys, dataKeys);
         }
-        Collection<Integer> partitions = getPartitionsForKeys(dataKeys);
         Map<Integer, Object> responses;
         try {
-            OperationFactory operationFactory = operationProvider.createGetAllOperationFactory(name, dataKeys);
+            // The operation must work during RU in all combinations, including partition retries
+            // in any combination of old and new members, which execute:
+            // - operation factory
+            // - PartitionIteratingOperation
+            // - create partition retry operation
+            // - execute partition retry operation
+            // Data must be sufficient to execute them correctly in all combinations.
+            // Also Cluster version can be upgraded or downgraded in the middle of getAll execution.
+            Map<Integer, List<Data>> keysForPartitions = getPartitionIdToKeysMap(dataKeys);
+            OperationFactory operationFactory = operationProvider.createGetAllOperationFactory(name, keysForPartitions);
+
             long startTimeNanos = Timer.nanos();
 
-            responses = operationService.invokeOnPartitions(SERVICE_NAME, operationFactory, partitions);
+            responses = operationService.invokeOnPartitions(SERVICE_NAME, operationFactory, keysForPartitions.keySet());
             for (Object response : responses.values()) {
                 MapEntries entries = toObject(response);
                 for (int i = 0; i < entries.size(); i++) {
@@ -1148,9 +1159,9 @@ abstract class MapProxySupport<K, V>
             List<Future> futures = new ArrayList<>();
             for (Entry<Integer, Object> entry : results.entrySet()) {
                 Integer partitionId = entry.getKey();
-                Long count = ((Long) entry.getValue());
-                if (count != 0) {
-                    Operation operation = new AwaitMapFlushOperation(name, count);
+                Long sequence = ((Long) entry.getValue());
+                if (sequence != 0) {
+                    Operation operation = new AwaitMapFlushOperation(name, sequence);
                     futures.add(operationService.invokeOnPartition(MapService.SERVICE_NAME, operation, partitionId));
                 }
             }
@@ -1158,6 +1169,52 @@ abstract class MapProxySupport<K, V>
             for (Future future : futures) {
                 future.get();
             }
+        } catch (Throwable t) {
+            throw rethrow(t);
+        }
+    }
+
+    @Override
+    public CompletableFuture<Void> flushAsync() {
+        return flushAsync(null);
+    }
+
+    /**
+     * @param partitionsToFlush optional list of partitions to be flushed.
+     *                          If not provided, all partitions are flushed.
+     *
+     * @implNote The implementation is almost identical to {@link #flush()}, but there are some subtle differences
+     *           between sync and async invocations (async partition invocation can be performed from partition thread
+     *           for any partitions, sync partition invocation only for the same partition/partition thread
+     *           and in such case it will run directly - see {@link OperationExecutor#runOrExecute(Operation)}).
+     *           They might not matter in this case. If that turns out to be true,
+     *           {@link #flush()} could be implemented as {@code flushAsync().get()}.
+     * @see #flush()
+     */
+    @Override
+    public CompletableFuture<Void> flushAsync(@Nullable Collection<Integer> partitionsToFlush) {
+        try {
+            MapOperation mapFlushOperation = operationProvider.createMapFlushOperation(name);
+            BinaryOperationFactory operationFactory = new BinaryOperationFactory(mapFlushOperation, getNodeEngine());
+            CompletableFuture<Map<Integer, Object>> flushInvokeFuture;
+
+            if (partitionsToFlush != null) {
+                flushInvokeFuture = operationService.invokeOnPartitionsAsync(SERVICE_NAME, operationFactory, partitionsToFlush);
+            } else {
+                flushInvokeFuture = operationService.invokeOnAllPartitionsAsync(SERVICE_NAME, operationFactory);
+            }
+            return flushInvokeFuture.thenComposeAsync(results -> {
+                List<CompletableFuture<?>> futures = new ArrayList<>();
+                for (Entry<Integer, Object> entry : results.entrySet()) {
+                    Integer partitionId = entry.getKey();
+                    Long sequence = ((Long) entry.getValue());
+                    if (sequence != 0) {
+                        Operation operation = new AwaitMapFlushOperation(name, sequence);
+                        futures.add(operationService.invokeOnPartitionAsync(MapService.SERVICE_NAME, operation, partitionId));
+                    }
+                }
+                return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+            }, CALLER_RUNS);
         } catch (Throwable t) {
             throw rethrow(t);
         }

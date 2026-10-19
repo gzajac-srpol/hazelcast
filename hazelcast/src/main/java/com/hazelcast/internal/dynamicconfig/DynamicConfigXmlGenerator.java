@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -501,7 +501,7 @@ public final class DynamicConfigXmlGenerator {
             gen.node("class-name", consumerClassName);
         }
         gen.node("persist-wan-replicated-data", consumerConfig.isPersistWanReplicatedData())
-                .appendProperties(consumerConfig.getProperties(), "properties")
+                .appendProperties(consumerConfig.getProperties())
                 .close();
     }
 
@@ -523,7 +523,7 @@ public final class DynamicConfigXmlGenerator {
                 .node("queue-full-behavior", c.getQueueFullBehavior())
                 .node("max-target-endpoints", c.getMaxTargetEndpoints())
                 .node("queue-capacity", c.getQueueCapacity())
-                .appendProperties(c.getProperties(), "properties");
+                .appendProperties(c.getProperties());
 
         if (!isNullOrEmptyAfterTrim(publisherId)) {
             gen.node("publisher-id", publisherId);
@@ -543,7 +543,7 @@ public final class DynamicConfigXmlGenerator {
     private static void wanCustomPublisherXmlGenerator(ConfigXmlGenerator.XmlGenerator gen, WanCustomPublisherConfig c) {
         String publisherId = c.getPublisherId();
         gen.open("custom-publisher")
-                .appendProperties(c.getProperties(), "properties")
+                .appendProperties(c.getProperties())
                 .node("class-name", c.getClassName())
                 .node("publisher-id", publisherId)
                 .close();
@@ -865,7 +865,7 @@ public final class DynamicConfigXmlGenerator {
                 gen.open("discovery-strategy",
                                 "class", classNameOrImplClass(config.getClassName(), config.getDiscoveryStrategyFactory()),
                                 "enabled", "true")
-                        .appendProperties(config.getProperties(), "properties")
+                        .appendProperties(config.getProperties())
                         .close();
             }
         }

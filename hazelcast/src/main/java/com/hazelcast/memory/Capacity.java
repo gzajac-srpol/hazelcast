@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -201,8 +201,6 @@ public class Capacity {
     /**
      * Utility method to create a pretty format representation of given capacity with a specified unit.
      *
-     * @param capacity capacity
-     * @param unit unit
      * @return pretty format representation of given capacity
      */
     public static String toPrettyString(long capacity, MemoryUnit unit) {

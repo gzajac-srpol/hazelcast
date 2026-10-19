@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
-import static com.hazelcast.jet.impl.util.ExceptionUtil.rethrow;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.rethrow;
 
 public final class AvroSerializerHooks {
     private AvroSerializerHooks() { }
@@ -111,8 +111,8 @@ public final class AvroSerializerHooks {
                     // schema1.toString().equals(schema2.toString()).
                     String schemaJson = schemaToJson.computeIfAbsent(datum.getSchema(), Schema::toString);
                     out.writeString(schemaJson);
-                    out.writeByteArray(datum instanceof LazyImmutableContainer
-                            ? ((LazyImmutableContainer<?>) datum).serialized
+                    out.writeByteArray(datum instanceof LazyImmutableContainer<?> lic
+                            ? lic.serialized
                             : serialize(new GenericDatumWriter<>(datum.getSchema()), datum));
                 }
 

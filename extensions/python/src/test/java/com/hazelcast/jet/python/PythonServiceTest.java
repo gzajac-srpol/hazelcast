@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import com.hazelcast.jet.pipeline.Sinks;
 import com.hazelcast.jet.pipeline.StreamStage;
 import com.hazelcast.jet.pipeline.test.AssertionSinks;
 import com.hazelcast.jet.pipeline.test.TestSources;
+import com.hazelcast.test.HazelcastSerialClassRunner;
 import com.hazelcast.test.annotation.NightlyTest;
 import com.hazelcast.test.annotation.ParallelJVMTest;
 import com.hazelcast.test.annotation.QuickTest;
@@ -34,6 +35,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -44,15 +46,16 @@ import java.util.List;
 import java.util.concurrent.CompletionException;
 import java.util.stream.IntStream;
 
+import static com.hazelcast.jet.python.PythonExtension.python;
 import static com.hazelcast.jet.python.PythonTransforms.mapUsingPython;
 import static com.hazelcast.jet.python.PythonTransforms.mapUsingPythonBatch;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+@RunWith(HazelcastSerialClassRunner.class)
 public class PythonServiceTest extends SimpleTestInClusterSupport {
 
     private static final int ITEM_COUNT = 10_000;
@@ -102,7 +105,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
                 .setBaseDir(baseDir.toString())
                 .setHandlerModule("echo")
                 .setHandlerFunction("handle");
-        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).collect(toList());
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
         Pipeline p = Pipeline.create();
         BatchStage<String> stage = p.readFrom(TestSources.items(items));
 
@@ -111,7 +114,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
 
         // Then
         mapped.writeTo(AssertionSinks.assertAnyOrder(
-                 "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).collect(toList())
+                 "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
         ));
         instance().getJet().newJob(p).join();
     }
@@ -126,7 +129,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
                 .setBaseDir(baseDir.toString())
                 .setHandlerModule("echo-len")
                 .setHandlerFunction("handle");
-        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).collect(toList());
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
         Pipeline p = Pipeline.create();
         BatchStage<String> stage = p.readFrom(TestSources.items(items));
 
@@ -135,7 +138,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
 
         // Then
         mapped.writeTo(AssertionSinks.assertAnyOrder(
-                 "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i + "-1").collect(toList())
+                 "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i + "-1").toList()
         ));
         instance().getJet().newJob(p).join();
     }
@@ -147,7 +150,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
         PythonServiceConfig cfg = new PythonServiceConfig()
                 .setHandlerFile(baseDir + "/echo.py")
                 .setHandlerFunction("handle");
-        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).collect(toList());
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
         Pipeline p = Pipeline.create();
         BatchStage<String> stage = p.readFrom(TestSources.items(items));
 
@@ -156,7 +159,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
 
         // Then
         mapped.writeTo(AssertionSinks.assertAnyOrder(
-                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).collect(toList())
+                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
         ));
         instance().getJet().newJob(p).join();
     }
@@ -169,7 +172,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
                 .setBaseDir(baseDir.toString())
                 .setHandlerModule("echo")
                 .setHandlerFunction("handle");
-        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).collect(toList());
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
         Pipeline p = Pipeline.create();
         StreamStage<String> stage = p.readFrom(TestSources.items(items)).addTimestamps(x -> 0, 0);
 
@@ -178,7 +181,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
 
         // Then
         mapped.writeTo(AssertionSinks.assertAnyOrder(
-                 "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).collect(toList())
+                 "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
         ));
         instance().getJet().newJob(p).join();
     }
@@ -193,7 +196,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
                 .setBaseDir(baseDir.toString())
                 .setHandlerModule("echo-len")
                 .setHandlerFunction("handle");
-        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).collect(toList());
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
         Pipeline p = Pipeline.create();
         StreamStage<String> stage = p.readFrom(TestSources.items(items)).addTimestamps(x -> 0, 0);
 
@@ -202,7 +205,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
 
         // Then
         mapped.writeTo(AssertionSinks.assertAnyOrder(
-                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i + "-1").collect(toList())
+                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i + "-1").toList()
         ));
         instance().getJet().newJob(p).join();
     }
@@ -214,7 +217,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
         PythonServiceConfig cfg = new PythonServiceConfig()
                 .setHandlerFile(baseDir + "/echo.py")
                 .setHandlerFunction("handle");
-        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).collect(toList());
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
         Pipeline p = Pipeline.create();
         StreamStage<String> stage = p.readFrom(TestSources.items(items)).addTimestamps(x -> 0, 0);
 
@@ -223,7 +226,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
 
         // Then
         mapped.writeTo(AssertionSinks.assertAnyOrder(
-                 "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).collect(toList())
+                 "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
         ));
         instance().getJet().newJob(p).join();
     }
@@ -235,7 +238,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
         PythonServiceConfig cfg = new PythonServiceConfig()
                 .setHandlerFile(baseDir + "/echo.py")
                 .setHandlerFunction("handle");
-        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).collect(toList());
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
         Pipeline p = Pipeline.create();
         StreamStage<String> stage = p.readFrom(TestSources.items(items))
                                      .addTimestamps(x -> 0, 0);
@@ -245,7 +248,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
 
         // Then
         mapped.writeTo(AssertionSinks.assertAnyOrder(
-                 "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).collect(toList())
+                 "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
         ));
         instance().getJet().newJob(p).join();
     }
@@ -274,7 +277,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
 
         // Then
         mapped.writeTo(AssertionSinks.assertAnyOrder(
-                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).collect(toList())
+                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
         ));
         instance().getJet().newJob(p).join();
         assertTrue("Init script didn't run", new File(baseDir, outcomeFilename).isFile());
@@ -304,7 +307,7 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
 
         // Then
         mapped.writeTo(AssertionSinks.assertAnyOrder(
-                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).collect(toList())
+                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
         ));
         instance().getJet().newJob(p).join();
         assertTrue("Cleanup script didn't run", new File(baseDir, outcomeFilename).isFile());
@@ -421,19 +424,153 @@ public class PythonServiceTest extends SimpleTestInClusterSupport {
                 // When
                 .setChannelFn((host, port) -> NettyChannelBuilder.forAddress(host, port)
                         .maxInboundMessageSize(1));
-        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).collect(toList());
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
         Pipeline p = Pipeline.create();
 
         p.readFrom(TestSources.items(items))
                 .apply(mapUsingPythonBatch(cfg)).setLocalParallelism(2)
                 .writeTo(AssertionSinks.assertAnyOrder(
-                        "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).collect(toList())
+                        "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
                 ));
         Job job = instance().getJet().newJob(p);
 
         // Then
         assertThatThrownBy(job::join)
                 .hasMessageContaining("gRPC message exceeds maximum size 1");
+    }
+
+    @Test
+    @Category({QuickTest.class, ParallelJVMTest.class})
+    public void batchStage_mapUsingPython_extension() {
+        // Given
+        PythonServiceConfig cfg = new PythonServiceConfig()
+                .setBaseDir(baseDir.toString())
+                .setHandlerModule("echo")
+                .setHandlerFunction("handle");
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
+        Pipeline p = Pipeline.create();
+        BatchStage<String> stage = p.readFrom(TestSources.items(items));
+
+        // When
+        BatchStage<String> mapped = stage.using(python()).map(cfg).setLocalParallelism(2);
+
+        // Then
+        mapped.writeTo(AssertionSinks.assertAnyOrder(
+                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
+        ));
+        instance().getJet().newJob(p).join();
+    }
+
+    @Test
+    @Category(NightlyTest.class)
+    public void batchStage_mapUsingPython_maxBatchSize_extension() {
+        // Given
+        PythonServiceConfig cfg = new PythonServiceConfig()
+                .setBaseDir(baseDir.toString())
+                .setHandlerModule("echo")
+                .setHandlerFunction("handle");
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
+        Pipeline p = Pipeline.create();
+        BatchStage<String> stage = p.readFrom(TestSources.items(items));
+
+        // When
+        BatchStage<String> mapped = stage.using(python()).maxBatchSize(1).map(cfg).setLocalParallelism(2);
+
+        // Then
+        mapped.writeTo(AssertionSinks.assertAnyOrder(
+                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
+        ));
+        instance().getJet().newJob(p).join();
+    }
+
+    @Test
+    @Category(NightlyTest.class)
+    public void batchStage_mapUsingPython_maxBatchSize_extensionFluent() {
+        // Given
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
+        Pipeline p = Pipeline.create();
+        BatchStage<String> stage = p.readFrom(TestSources.items(items));
+
+        // When
+        BatchStage<String> mapped = stage.using(python())
+                .baseDir(baseDir.toString())
+                .handlerModule("echo")
+                .handlerFunction("handle")
+                .maxBatchSize(1)
+                .map().setLocalParallelism(2);
+
+        // Then
+        mapped.writeTo(AssertionSinks.assertAnyOrder(
+                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
+        ));
+        instance().getJet().newJob(p).join();
+    }
+
+    @Test
+    @Category(NightlyTest.class)
+    public void streamStage_mapUsingPython_extension() {
+        // Given
+        PythonServiceConfig cfg = new PythonServiceConfig()
+                .setBaseDir(baseDir.toString())
+                .setHandlerModule("echo")
+                .setHandlerFunction("handle");
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
+        Pipeline p = Pipeline.create();
+        StreamStage<String> stage = p.readFrom(TestSources.items(items)).addTimestamps(x -> 0, 0);
+
+        // When
+        StreamStage<String> mapped = stage.using(python()).map(cfg).setLocalParallelism(2);
+
+        // Then
+        mapped.writeTo(AssertionSinks.assertAnyOrder(
+                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
+        ));
+        instance().getJet().newJob(p).join();
+    }
+
+    @Test
+    @Category(NightlyTest.class)
+    public void streamStage_mapUsingPython_maxBatchSize_extension() {
+        // Given
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
+        Pipeline p = Pipeline.create();
+        StreamStage<String> stage = p.readFrom(TestSources.items(items)).addTimestamps(x -> 0, 0);
+
+        // When
+        StreamStage<String> mapped = stage.using(python())
+                .baseDir(baseDir.toString())
+                .handlerModule("echo")
+                .handlerFunction("handle")
+                .maxBatchSize(1)
+                .map().setLocalParallelism(2);
+
+        // Then
+        mapped.writeTo(AssertionSinks.assertAnyOrder(
+                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
+        ));
+        instance().getJet().newJob(p).join();
+    }
+
+    @Test
+    @Category(NightlyTest.class)
+    public void streamStage_mapUsingPython_maxBatchSize_extensionFluent() {
+        // Given
+        PythonServiceConfig cfg = new PythonServiceConfig()
+                .setBaseDir(baseDir.toString())
+                .setHandlerModule("echo")
+                .setHandlerFunction("handle");
+        List<String> items = IntStream.range(0, ITEM_COUNT).mapToObj(Integer::toString).toList();
+        Pipeline p = Pipeline.create();
+        StreamStage<String> stage = p.readFrom(TestSources.items(items)).addTimestamps(x -> 0, 0);
+
+        // When
+        StreamStage<String> mapped = stage.using(python()).maxBatchSize(1).map(cfg).setLocalParallelism(2);
+
+        // Then
+        mapped.writeTo(AssertionSinks.assertAnyOrder(
+                "Python didn't map the items correctly", items.stream().map(i -> "echo-" + i).toList()
+        ));
+        instance().getJet().newJob(p).join();
     }
 
     private void installFileToBaseDir(String contents, String filename) throws IOException {

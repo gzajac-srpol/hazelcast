@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import com.hazelcast.config.JoinConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.instance.impl.HazelcastInstanceFactory;
+import com.hazelcast.instance.impl.JavaIPvXProperties;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.serialization.impl.SerializationConstants;
 import com.hazelcast.internal.tpcengine.util.OS;
@@ -42,13 +43,16 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
+import java.net.NetworkInterface;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import static com.hazelcast.test.Accessors.getNode;
 import static com.hazelcast.test.HazelcastTestSupport.assertTrueEventually;
-import static com.hazelcast.test.HazelcastTestSupport.smallInstanceConfig;
+import static com.hazelcast.test.HazelcastTestSupport.smallInstanceConfigWithoutJetAndMetrics;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -60,7 +64,7 @@ import static org.junit.Assert.assertTrue;
 public class MulticastDeserializationTest {
 
     private static final int MULTICAST_PORT = 53535;
-    private static final String MULTICAST_GROUP = "224.0.0.219";
+    private static final String MULTICAST_GROUP = chooseMulticastGroup();
     // TTL = 0 : restricted to the same host, won't be output by any interface
     private static final int MULTICAST_TTL = 0;
 
@@ -77,6 +81,11 @@ public class MulticastDeserializationTest {
     public static void cleanup() {
         HazelcastInstanceFactory.terminateAll();
         TestDeserialized.isDeserialized = false;
+    }
+
+    private static String chooseMulticastGroup() {
+        // We must use ipv6 address on BSD localhost interface with ipv6 native sockets
+        return OS.isMac() && !JavaIPvXProperties.INSTANCE.preferIPv4Stack() ? "ff11::123" : "224.0.0.219";
     }
 
     /**
@@ -107,7 +116,7 @@ public class MulticastDeserializationTest {
     }
 
     private Config createConfig(boolean withFilter) {
-        Config config = smallInstanceConfig();
+        Config config = smallInstanceConfigWithoutJetAndMetrics();
         if (withFilter) {
             JavaSerializationFilterConfig javaSerializationFilterConfig = new JavaSerializationFilterConfig()
                     .setDefaultsDisabled(true);
@@ -124,7 +133,7 @@ public class MulticastDeserializationTest {
                 .setMulticastPort(MULTICAST_PORT)
                 .setMulticastGroup(MULTICAST_GROUP)
                 .setMulticastTimeToLive(MULTICAST_TTL)
-                ;
+        ;
         return config;
     }
 
@@ -132,11 +141,15 @@ public class MulticastDeserializationTest {
         byte[] data = TestJavaSerializationUtils.serialize(object);
         try (MulticastSocket multicastSocket = new MulticastSocket(MULTICAST_PORT)) {
             multicastSocket.setTimeToLive(MULTICAST_TTL);
+            // Mirror MulticastService: the member pins its outbound interface only on Mac when bound to loopback,
+            // on other platforms the OS picks the interface. The sender must use the same interface as the member.
+            NetworkInterface sendInterface = null;
             if (OS.isMac()) {
-                multicastSocket.setInterface(InetAddress.getByName("127.0.0.1"));
+                sendInterface = NetworkInterface.getByInetAddress(InetAddress.getByName("127.0.0.1"));
+                multicastSocket.setNetworkInterface(sendInterface);
             }
-            InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
-            multicastSocket.joinGroup(group);
+            SocketAddress groupAddress = new InetSocketAddress(InetAddress.getByName(MULTICAST_GROUP), MULTICAST_PORT);
+            multicastSocket.joinGroup(groupAddress, sendInterface);
 
             int msgSize = data.length;
 
@@ -146,9 +159,9 @@ public class MulticastDeserializationTest {
             bbuf.putInt(SerializationConstants.JAVA_DEFAULT_TYPE_SERIALIZABLE);
             bbuf.put(data);
             byte[] packetData = bbuf.array();
-            DatagramPacket packet = new DatagramPacket(packetData, packetData.length, group, MULTICAST_PORT);
+            DatagramPacket packet = new DatagramPacket(packetData, packetData.length, groupAddress);
             multicastSocket.send(packet);
-            multicastSocket.leaveGroup(group);
+            multicastSocket.leaveGroup(groupAddress, sendInterface);
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package com.hazelcast.jet.kinesis;
 
-import com.amazonaws.services.kinesis.AmazonKinesisAsync;
 import com.hazelcast.collection.IList;
 import com.hazelcast.jet.Job;
 import com.hazelcast.jet.config.JobConfig;
@@ -34,6 +33,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.localstack.LocalStackContainer.Service;
+import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
 
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
@@ -41,11 +41,11 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.IntStream;
 
+import static com.hazelcast.jet.TestedVersions.LOCALSTACK_IMAGE;
 import static com.hazelcast.jet.core.JobAssertions.assertThat;
 import static com.hazelcast.test.DockerTestUtil.assumeDockerEnabled;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.testcontainers.utility.DockerImageName.parse;
 
 @Category(SlowTest.class)
 @SuppressWarnings("StaticVariableName")
@@ -54,7 +54,7 @@ public class KinesisLimitExceededIntegrationTest extends AbstractKinesisTest {
     public static LocalStackContainer localStack;
 
     private static AwsConfig AWS_CONFIG;
-    private static AmazonKinesisAsync KINESIS;
+    private static KinesisAsyncClient KINESIS;
     private static KinesisTestHelper HELPER;
 
     public KinesisLimitExceededIntegrationTest() {
@@ -76,8 +76,7 @@ public class KinesisLimitExceededIntegrationTest extends AbstractKinesisTest {
         } else {
             assumeDockerEnabled();
 
-            localStack = new LocalStackContainer(parse("localstack/localstack")
-                    .withTag(LOCALSTACK_VERSION))
+            localStack = new LocalStackContainer(LOCALSTACK_IMAGE)
                     // Introduce errors so some items fail to be written and need to be retried
                     .withEnv("KINESIS_ERROR_PROBABILITY", "0.25")
                     .withServices(Service.KINESIS);
@@ -95,7 +94,7 @@ public class KinesisLimitExceededIntegrationTest extends AbstractKinesisTest {
     @AfterClass
     public static void afterClass() {
         if (KINESIS != null) {
-            KINESIS.shutdown();
+            KINESIS.close();
         }
 
         if (localStack != null) {
@@ -137,8 +136,7 @@ public class KinesisLimitExceededIntegrationTest extends AbstractKinesisTest {
          .map(Entry::getKey)
          .peek()
          .writeTo(Sinks.list("result"));
-        Job readJob = hz().getJet().newJob(p,
-                new JobConfig().setProcessingGuarantee(ProcessingGuarantee.AT_LEAST_ONCE));
+        hz().getJet().newJob(p, new JobConfig().setProcessingGuarantee(ProcessingGuarantee.AT_LEAST_ONCE));
 
         for (int i = 0; i < 10; i++) {
             // Make sure job is running before we suspend it

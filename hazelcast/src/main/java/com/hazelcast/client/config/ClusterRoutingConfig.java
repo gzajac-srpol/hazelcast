@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,9 +83,9 @@ public class ClusterRoutingConfig {
      * @param routingMode the legacy {@link RoutingMode} enumeration value to use
      * @return this configuration.
      *
-     * @deprecated since 6.0, use {@link #setRoutingMode(RoutingMode)} instead.
+     * @deprecated use {@link #setRoutingMode(RoutingMode)} instead.
      */
-    @Deprecated(since = "6.0", forRemoval = true)
+    @Deprecated(since = "5.6", forRemoval = true)
     public ClusterRoutingConfig setRoutingMode(com.hazelcast.client.impl.connection.tcp.RoutingMode routingMode) {
         this.routingMode = RoutingMode.valueOf(routingMode.name());
         return this;

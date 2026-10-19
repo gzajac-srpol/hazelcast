@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,8 +23,10 @@ import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
 
-import java.util.Map;
 import java.util.Properties;
+
+import static com.hazelcast.test.TestNameHolder.removeThreadLocalTestMethodName;
+import static com.hazelcast.test.TestNameHolder.setThreadLocalTestMethodName;
 
 /**
  * Run the tests in series and log the duration of the running test.
@@ -73,9 +75,7 @@ public class HazelcastSerialClassRunner extends AbstractHazelcastClassRunner {
         }
 
         private void init(Properties properties) {
-            for (Map.Entry entry : properties.entrySet()) {
-                put(entry.getKey(), entry.getValue());
-            }
+            this.putAll(properties);
         }
     }
 }

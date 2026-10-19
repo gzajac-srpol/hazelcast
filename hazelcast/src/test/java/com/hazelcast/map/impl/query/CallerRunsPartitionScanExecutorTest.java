@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ public class CallerRunsPartitionScanExecutorTest {
     public void execute_success() {
         PartitionScanRunner runner = mock(PartitionScanRunner.class);
         CallerRunsPartitionScanExecutor executor = new CallerRunsPartitionScanExecutor(runner);
-        Predicate<Object, Object> predicate = Predicates.equal("attribute", 1);
+        Predicate predicate = Predicates.equal("attribute", 1);
         QueryResult queryResult = new QueryResult(IterationType.ENTRY, null, null, Long.MAX_VALUE, false);
 
         executor.execute("Map", predicate, asList(1, 2, 3), queryResult);
@@ -60,7 +60,7 @@ public class CallerRunsPartitionScanExecutorTest {
     public void execute_fail() {
         PartitionScanRunner runner = mock(PartitionScanRunner.class);
         CallerRunsPartitionScanExecutor executor = new CallerRunsPartitionScanExecutor(runner);
-        Predicate<Object, Object> predicate = Predicates.equal("attribute", 1);
+        Predicate predicate = Predicates.equal("attribute", 1);
         QueryResult queryResult = new QueryResult(IterationType.ENTRY, null, null, Long.MAX_VALUE, false);
 
         doThrow(new QueryException()).when(runner).run(anyString(), eq(predicate), anyInt(), eq(queryResult));
@@ -74,7 +74,7 @@ public class CallerRunsPartitionScanExecutorTest {
     public void execute_fail_retryable() {
         PartitionScanRunner runner = mock(PartitionScanRunner.class);
         CallerRunsPartitionScanExecutor executor = new CallerRunsPartitionScanExecutor(runner);
-        Predicate<Object, Object> predicate = Predicates.equal("attribute", 1);
+        Predicate predicate = Predicates.equal("attribute", 1);
         QueryResult queryResult = new QueryResult(IterationType.ENTRY, null, null, Long.MAX_VALUE, false);
 
         doThrow(new RetryableHazelcastException()).when(runner).run(anyString(), eq(predicate), anyInt(), eq(queryResult));

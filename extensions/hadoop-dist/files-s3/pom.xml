@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2025 Hazelcast Inc.
+  ~ Copyright 2026 Hazelcast Inc.
   ~
   ~ Licensed under the Hazelcast Community License (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -36,6 +36,12 @@
     <properties>
         <!-- needed for CheckStyle -->
         <main.basedir>${project.basedir}/../../..</main.basedir>
+        <!--
+        There is no Javadoc to publish, so we (ab)use `maven-jar-plugin` to generate a dummy artifact with `javadoc` classifier
+        Hence we do not need to execute `maven-javadoc-plugin`, even if executed in other reactor modules
+        https://maven.apache.org/plugins/maven-javadoc-plugin/javadoc-mojo.html#skip
+        -->
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
     <build>
@@ -43,17 +49,27 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <configuration combine.self="append">
-                    <filters>
-                        <filter>
-                            <artifact>software.amazon.awssdk:bundle</artifact>
-                            <includes>
-                                <include>**/s3/**</include>
-                                <include>**/slf4j/**</include>
-                            </includes>
-                        </filter>
-                    </filters>
-                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <!-- We must generate a -javadoc JAR file to publish on Maven Central -->
+                        <id>empty-javadoc-jar</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>javadoc</classifier>
+                            <classesDirectory>${project.basedir}/src/main/javadoc</classesDirectory>
+                            <excludes>
+                                <exclude>.*</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -71,16 +87,16 @@
             </exclusions>
         </dependency>
         <!--
-            Jet S3 connector was developed using a different AWS SDK version than
-            the one bundled with Hadoop AWS support. For the basic functionality,
-            software.amazon.awssdk:s3 is enough, but unlike com.amazonaws:aws-java-sdk-s3,
-            it does not include all **/s3/** classes, such as **/transfer/s3/**. Shading
-            whole software.amazon.awssdk:bundle results in a huge artifact: ~30M vs ~300M.
+			The `bundle` dependency is very large
+            By replacing the transitive dependency with a subset of the dependencies we can avoid a huge artifact: ~30M vs ~300M.
         -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
-            <artifactId>bundle</artifactId>
-            <version>${aws.sdk2.version}</version>
+            <artifactId>s3-transfer-manager</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>apache-client</artifactId>
         </dependency>
     </dependencies>
 </project>

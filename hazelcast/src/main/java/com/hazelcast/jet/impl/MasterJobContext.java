@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -113,14 +113,14 @@ import static com.hazelcast.jet.impl.TerminationMode.CANCEL_GRACEFUL;
 import static com.hazelcast.jet.impl.TerminationMode.RESTART_FORCEFUL;
 import static com.hazelcast.jet.impl.TerminationMode.RESTART_GRACEFUL;
 import static com.hazelcast.jet.impl.execution.init.CustomClassLoadedObject.deserializeWithCustomClassLoader;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.isRestartableException;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.isTopologyException;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.peel;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.rethrow;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.isRestartableException;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.isTopologyException;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.peel;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.rethrow;
 import static com.hazelcast.jet.impl.util.Util.doWithClassLoader;
 import static com.hazelcast.jet.impl.util.Util.formatJobDuration;
 import static com.hazelcast.jet.impl.util.Util.isJobSuspendable;
-import static com.hazelcast.jet.impl.util.Util.memoize;
+import static com.hazelcast.internal.util.MemoizingSupplier.memoize;
 import static com.hazelcast.spi.impl.executionservice.ExecutionService.ASYNC_EXECUTOR;
 import static com.hazelcast.spi.impl.executionservice.ExecutionService.JOB_OFFLOADABLE_EXECUTOR;
 import static java.util.Collections.emptyList;
@@ -194,6 +194,7 @@ public class MasterJobContext {
      * once and using returned value.
      */
     private volatile TerminationRequest terminationRequest;
+    private boolean restoredFromSnapshot;
 
     MasterJobContext(MasterContext masterContext, ILogger logger) {
         mc = masterContext;
@@ -217,6 +218,10 @@ public class MasterJobContext {
 
     public CompletableFuture<Void> jobCompletionFuture() {
         return jobCompletionFuture;
+    }
+
+    public boolean isExecutionCompleted() {
+        return executionCompletionFuture.isDone();
     }
 
     Optional<TerminationRequest> getTerminationRequest() {
@@ -306,6 +311,7 @@ public class MasterJobContext {
 
                   if (snapshotMapName != null) {
                       rewriteDagWithSnapshotRestore(dag, snapshotId, snapshotMapName, snapshotName);
+                      restoredFromSnapshot = true;
                   } else {
                       logger.info("Didn't find any snapshot to restore for " + mc.jobIdString());
                   }
@@ -339,7 +345,7 @@ public class MasterJobContext {
             MembersView membersView) {
         return ExecutionPlanBuilder.createExecutionPlans(mc.nodeEngine(), membersView.getMembers(),
                 dag, mc.jobId(), mc.executionId(), mc.jobConfig(), mc.jobExecutionRecord().ongoingSnapshotId(),
-                false, mc.jobRecord().getSubject());
+                restoredFromSnapshot, false, mc.jobRecord().getSubject());
     }
 
     private void initExecution(MembersView membersView, Map<MemberInfo, ExecutionPlan> executionPlanMap, DAG dag) {
@@ -402,12 +408,16 @@ public class MasterJobContext {
                 throw new JobTerminateRequestedException(RESTART_FORCEFUL);
             }
 
+            // Termination may be requested while the job is still initializing.
+            // To avoid race conditions, perform termination at this point even if it was
+            // requested with restart. The restart will be rescheduled in finalizeExecution()
+            // according to the standard execution flow.
+            // If termination is requested after this point, the job will start normally
+            // and then be terminated.
             if (terminationRequest != null) {
-                if (terminationRequest.mode.actionAfterTerminate() != RESTART) {
-                    throw new JobTerminateRequestedException(terminationRequest.mode);
-                }
-                // requested termination mode is RESTART, ignore it because we are just starting
-                terminationRequest = null;
+                logger.info("Termination was requested while starting the job " + mc.jobIdString()
+                    + ", termination mode: " + terminationRequest.mode);
+                throw new JobTerminateRequestedException(terminationRequest.mode);
             }
 
             // save a copy of the vertex list because it is going to change
@@ -498,7 +508,7 @@ public class MasterJobContext {
                 setFinalResult(createCancellationException());
             }
             if (mode.isWithTerminalSnapshot()) {
-                mc.snapshotContext().enqueueSnapshot(null, true, null);
+                mc.snapshotContext().enqueueSnapshot(null, true, new CompletableFuture<>());
             }
 
             result = tuple2(executionCompletionFuture, null);
@@ -632,9 +642,26 @@ public class MasterJobContext {
                 responses -> onStartExecutionComplete(getErrorFromResponses("Execution", responses),
                         responses);
 
-        mc.setJobStatus(RUNNING);
-        // There can be a snapshot enqueued while the job is starting, start it now if that's the case
-        mc.snapshotContext().tryBeginSnapshot();
+        mc.snapshotContext()
+            .requestInitialSnapshotIfNeeded()
+            .whenComplete(
+                (snapshotRequested, t) -> {
+                    mc.coordinationService().assertOnCoordinatorThread();
+                    if (t != null) {
+                        logger.warning("Initial snapshot failed. Terminating job.");
+                        requestTermination(CANCEL_FORCEFUL, true, false);
+                        return;
+                    }
+                    mc.setJobStatusUnderLock(RUNNING);
+                    // There can be a terminal snapshot enqueued while the job is starting, start it now if that's the case
+                    // If the job does not require an initial snapshot, attempt to process terminal snapshot immediately.
+                    // Otherwise, the terminal snapshot was started at the end of phase2 of initial snapshot.
+                    if (!snapshotRequested) {
+                        mc.snapshotContext().tryBeginSnapshot();
+                    }
+                }
+            );
+
         mc.invokeOnParticipants(operationCtor, completionCallback, executionManager::processResponse, false);
 
         if (mc.jobConfig().getProcessingGuarantee() != NONE) {
@@ -704,6 +731,7 @@ public class MasterJobContext {
         if (failures.stream().allMatch(entry -> entry.getValue() instanceof TerminatedWithSnapshotException)) {
             assert opName.equals("Execution") : "opName is '" + opName + "', expected 'Execution'";
             logger.fine(opName + " of " + mc.jobIdString() + " terminated after a terminal snapshot");
+            getTerminationRequest().orElseThrow(() -> new AssertionError("terminationRequest is null"));
             TerminationMode mode = requestedTerminationMode().orElseThrow(() -> new AssertionError("mode is null"));
             assert mode.isWithTerminalSnapshot() : "mode=" + mode;
             return mode == CANCEL_GRACEFUL ? createCancellationException() : new JobTerminateRequestedException(mode);

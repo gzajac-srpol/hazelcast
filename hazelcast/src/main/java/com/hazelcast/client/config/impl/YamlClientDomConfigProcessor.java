@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -130,6 +130,8 @@ public class YamlClientDomConfigProcessor extends ClientDomConfigProcessor {
                 fillCompactSerializers(child, compactSerializationConfig);
             } else if (matches("classes", name)) {
                 fillCompactSerializableClasses(child, compactSerializationConfig);
+            } else if (matches("zero-config-filter", name)) {
+                fillJavaSerializationFilter(child, compactSerializationConfig);
             }
         }
     }

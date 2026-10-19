@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ public class RecordSerializationWithMemberIntegrationTest extends RecordSerializ
     @Override
     public HazelcastInstance getDriver() {
         Config config = smallInstanceConfig();
+        AllTypesRecord.addToAllowList(config.getSerializationConfig());
         return factory.newHazelcastInstance(config);
     }
 
@@ -43,6 +44,7 @@ public class RecordSerializationWithMemberIntegrationTest extends RecordSerializ
         Config config = smallInstanceConfig();
         config.getSerializationConfig()
                 .setCompactSerializationConfig(compactSerializationConfig);
+        AllTypesRecord.addToAllowList(config.getSerializationConfig());
         return factory.newHazelcastInstance(config);
     }
 }

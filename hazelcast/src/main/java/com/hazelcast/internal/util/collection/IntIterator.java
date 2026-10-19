@@ -1,6 +1,6 @@
 /*
  * Original work Copyright 2015 Real Logic Ltd.
- * Modified work Copyright (c) 2015-2025, Hazelcast, Inc. All Rights Reserved.
+ * Modified work Copyright (c) 2015-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 
 package com.hazelcast.internal.util.collection;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -37,8 +36,8 @@ public class IntIterator implements Iterator<Integer> {
      * @param missingValue to indicate the value is missing, i.e. not present or null.
      * @param values       to iterate over.
      */
-    @SuppressFBWarnings(value = "EI2", justification =
-            "This is flyweight over caller's array, so no copying")
+//    @SuppressFBWarnings(value = "EI2", justification =
+//            "This is flyweight over caller's array, so no copying")
     public IntIterator(final int missingValue, final int[] values) {
         this.missingValue = missingValue;
         this.values = values;

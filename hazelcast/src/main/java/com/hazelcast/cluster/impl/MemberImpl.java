@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,11 +54,13 @@ public final class MemberImpl
     }
 
     public MemberImpl(Address address, MemberVersion version, boolean localMember) {
-        this(newHashMap(MEMBER, address), address, version, localMember, null, null, false, NA_MEMBER_LIST_JOIN_VERSION, null);
+        this(newHashMap(MEMBER, address), address, version, localMember, null, null,
+                false, NA_MEMBER_LIST_JOIN_VERSION, null);
     }
 
     public MemberImpl(Address address, MemberVersion version, boolean localMember, UUID uuid) {
-        this(newHashMap(MEMBER, address), address, version, localMember, uuid, null, false, NA_MEMBER_LIST_JOIN_VERSION, null);
+        this(newHashMap(MEMBER, address), address, version, localMember, uuid, null, false,
+                NA_MEMBER_LIST_JOIN_VERSION, null);
     }
 
     protected MemberImpl(Map<EndpointQualifier, Address> addresses, MemberVersion version, boolean localMember,

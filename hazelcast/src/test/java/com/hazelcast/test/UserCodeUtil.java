@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import org.apache.commons.io.FilenameUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -30,7 +31,7 @@ import static com.hazelcast.internal.util.ExceptionUtil.sneakyThrow;
  * References to classes which are not part of the classpath at test execution time.
  */
 public class UserCodeUtil {
-    public static final UserCodeUtil INSTANCE = new UserCodeUtil(GeneratedBuildProperties.ARTIFACT_ID, GeneratedBuildProperties.VERSION);
+    public static final UserCodeUtil INSTANCE = new UserCodeUtil("hazelcast", GeneratedBuildProperties.VERSION);
 
     private String artifactId;
     private String version;
@@ -62,5 +63,9 @@ public class UserCodeUtil {
         } catch (MalformedURLException e) {
             throw sneakyThrow(e);
         }
+    }
+
+    public static URLClassLoader classLoaderRelativeToBinariesFolder(String... path) {
+        return new URLClassLoader(new URL[]{urlRelativeToBinariesFolder(path)});
     }
 }

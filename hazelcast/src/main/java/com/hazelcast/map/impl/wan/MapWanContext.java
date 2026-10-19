@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import com.hazelcast.config.WanConsumerConfig;
 import com.hazelcast.config.WanReplicationConfig;
 import com.hazelcast.config.WanReplicationRef;
 import com.hazelcast.config.WanSyncConfig;
-import com.hazelcast.jet.impl.util.ConcurrentMemoizingSupplier;
 import com.hazelcast.map.impl.MapContainer;
 import com.hazelcast.map.impl.MapServiceContext;
 import com.hazelcast.spi.impl.NodeEngine;
@@ -32,14 +31,17 @@ import com.hazelcast.spi.merge.SplitBrainMergePolicyProvider;
 import com.hazelcast.wan.impl.DelegatingWanScheme;
 import com.hazelcast.wan.impl.WanReplicationService;
 
+import java.util.function.Supplier;
+
 import static com.hazelcast.config.ConsistencyCheckStrategy.MERKLE_TREES;
 import static com.hazelcast.internal.config.MergePolicyValidator.checkMapMergePolicy;
+import static com.hazelcast.internal.util.Memoizers.memoizeConcurrent;
 import static java.lang.Boolean.TRUE;
 
 public class MapWanContext {
 
     protected volatile SplitBrainMergePolicy wanMergePolicy;
-    protected volatile ConcurrentMemoizingSupplier<DelegatingWanScheme> wanReplicationDelegateSupplier;
+    protected volatile Supplier<DelegatingWanScheme> wanReplicationDelegateSupplier;
     private final String name;
     private final MapServiceContext mapServiceContext;
     private volatile MapConfig mapConfig;
@@ -88,9 +90,9 @@ public class MapWanContext {
         // reset due to possible reconfiguration
         wanReplicationDelegateSupplier = null;
         if (wanReplicationService.hasWanReplicationScheme(wanReplicationRefName)) {
-            wanReplicationDelegateSupplier = new ConcurrentMemoizingSupplier<>(() ->
+            wanReplicationDelegateSupplier = memoizeConcurrent(() ->
                     wanReplicationService.getWanReplicationPublishers(wanReplicationRefName)
-            );
+                                                                        );
         }
         SplitBrainMergePolicyProvider mergePolicyProvider = nodeEngine.getSplitBrainMergePolicyProvider();
         wanMergePolicy = mergePolicyProvider.getMergePolicy(

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -162,8 +162,8 @@ public class RingbufferStoreConfig implements IdentifiedDataSerializable {
         className = in.readString();
         factoryClassName = in.readString();
         properties = in.readObject();
-        storeImplementation = in.readObject();
-        factoryImplementation = in.readObject();
+        storeImplementation = ConfigDeserializationUtil.readObject(in, getClass(), "storeImplementation");
+        factoryImplementation = ConfigDeserializationUtil.readObject(in, getClass(), "factoryImplementation");
     }
 
     @Override

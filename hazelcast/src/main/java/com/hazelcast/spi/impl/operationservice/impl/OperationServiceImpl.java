@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ import static com.hazelcast.spi.properties.ClusterProperty.FAIL_ON_INDETERMINATE
 import static com.hazelcast.spi.properties.ClusterProperty.INVOCATION_MAX_RETRY_COUNT;
 import static com.hazelcast.spi.properties.ClusterProperty.INVOCATION_RETRY_PAUSE;
 import static com.hazelcast.spi.properties.ClusterProperty.OPERATION_CALL_TIMEOUT_MILLIS;
-import static java.util.Collections.newSetFromMap;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
@@ -114,12 +114,17 @@ public final class OperationServiceImpl implements StaticMetricsProvider, LiveOp
     // contains the current executing asyncOperations. This information is needed for the operation-heartbeats.
     // operations are added/removed using the {@link Offload} functionality.
     @Probe(name = OPERATION_METRIC_OPERATION_SERVICE_ASYNC_OPERATIONS)
-    final Set<Operation> asyncOperations = newSetFromMap(new ConcurrentHashMap<>());
+    final Set<Operation> asyncOperations = ConcurrentHashMap.newKeySet();
     final ConcurrentMap<Class, LatencyDistribution> opLatencyDistributions;
 
     final InvocationRegistry invocationRegistry;
     final OperationExecutor operationExecutor;
 
+    /**
+     * @deprecated to be removed in 6.0 as this metric is not incremented.
+     * Use {@code operation.invocations.normalTimeouts} to monitor operation timeouts instead.
+     */
+    @Deprecated (forRemoval = true, since = "5.7")
     @Probe(name = OPERATION_METRIC_OPERATION_SERVICE_TIMEOUT_COUNT, level = MANDATORY)
     final MwCounter operationTimeoutCount = newMwCounter();
 
@@ -470,6 +475,13 @@ public final class OperationServiceImpl implements StaticMetricsProvider, LiveOp
     }
 
     @Override
+    public Map<Integer, Object> invokeOnRelevantLocalPartitions(String serviceName, OperationFactory operationFactory,
+                                                                  int maxReplicaIndex, long timeoutMillis) throws Exception {
+        InvokeOnLocalPartitions invokeOnLocal = new InvokeOnLocalPartitions(this, serviceName, operationFactory, maxReplicaIndex);
+        return timeoutMillis > 0 ? invokeOnLocal.invokeAsync().get(timeoutMillis, MILLISECONDS) : invokeOnLocal.invoke();
+    }
+
+    @Override
     public <T> CompletableFuture<Map<Integer, T>> invokeOnAllPartitionsAsync(String serviceName,
                                                                              OperationFactory operationFactory) {
 
@@ -572,6 +584,7 @@ public final class OperationServiceImpl implements StaticMetricsProvider, LiveOp
                 this,
                 operationExecutor,
                 retryCount,
+                callTimeoutCount,
                 serializationService,
                 nodeEngine.getThisAddress(),
                 outboundOperationHandler,

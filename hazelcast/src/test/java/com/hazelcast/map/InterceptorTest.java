@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,11 +51,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.hazelcast.test.HazelcastTestSupport.addToCompactSerializationAllowList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.timeout;
 
 @RunWith(HazelcastParametrizedRunner.class)
 @Parameterized.UseParametersRunnerFactory(HazelcastParallelParametersRunnerFactory.class)
@@ -92,6 +93,7 @@ public class InterceptorTest extends HazelcastTestSupport {
     @Override
     protected Config getConfig() {
         var config = smallInstanceConfigWithoutJetAndMetrics();
+        addToCompactSerializationAllowList(config, Dummy.class);
         config.getMapConfig("default")
                 .setInMemoryFormat(inMemoryFormat);
         return config;
@@ -369,6 +371,7 @@ public class InterceptorTest extends HazelcastTestSupport {
 
         IMap<Integer, Integer> map = hz.getMap(name);
         put(map, 1, 1);
+        assertEquals(1, get(map, 1));
 
         map.addInterceptor(new NegativePutInterceptor());
         var secondInterceptor = Mockito.mock(MapInterceptor.class);
@@ -376,10 +379,7 @@ public class InterceptorTest extends HazelcastTestSupport {
 
         put(map, 1, 2);
         Mockito.verify(secondInterceptor).interceptPut(1, -2);
-        Mockito.verify(secondInterceptor).afterPut(-2);
-        // This check is in place to maintain inherited tests compatibility, as EntryProcessor invokes interceptGet.
-        Mockito.verify(secondInterceptor, Mockito.atLeast(0)).interceptGet(any());
-        Mockito.verifyNoMoreInteractions(secondInterceptor);
+        Mockito.verify(secondInterceptor, timeout(ASSERT_TRUE_EVENTUALLY_TIMEOUT)).afterPut(-2);
     }
 
     @Test
@@ -508,8 +508,7 @@ public class InterceptorTest extends HazelcastTestSupport {
     static class AfterGetModifyInterceptor extends MapInterceptorAdaptor {
         @Override
         public void afterGet(Object value) {
-            if (value instanceof Dummy) {
-                Dummy dummy = (Dummy) value;
+            if (value instanceof Dummy dummy) {
                 dummy.value = -dummy.value;
             }
         }

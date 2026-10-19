@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +53,7 @@ public class FileSourceBuilder<T> {
             "abfs://",  // Azure Data Lake Gen 2
             "gs://"     // Google Cloud Storage
     );
+    private static final long DEFAULT_BLOCK_SIZE = 64 * 1024 * 1024L;
 
     private final Map<String, String> options = new HashMap<>();
 
@@ -70,6 +71,12 @@ public class FileSourceBuilder<T> {
         }
         if (!(hasHadoopPrefix(path) || Paths.get(path).isAbsolute())) {
             throw new IllegalArgumentException("Provided path must be absolute, path: " + path);
+        }
+        // Hadoop's default mapping for gs:// is very old and incorrect for new APIs
+        if (path.startsWith("gs:")) {
+            options.put("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem");
+            options.put("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS");
+            options.put("fs.gs.block.size", String.valueOf(DEFAULT_BLOCK_SIZE));
         }
     }
 

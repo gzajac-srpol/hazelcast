@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import static java.util.Objects.requireNonNull;
  * <p>
  * Can be used for finer control of the scope of a System property.
  * <p>
- * When migrating to JUnit5 consider using {@link org.junitpioneer.jupiter.SetEnvironmentVariable} and related.
+ * When migrating to JUnit5 consider using {@link org.junit.jupiter.api.util.SetSystemProperty} and related.
  */
 public final class OverridePropertyRule implements TestRule {
 

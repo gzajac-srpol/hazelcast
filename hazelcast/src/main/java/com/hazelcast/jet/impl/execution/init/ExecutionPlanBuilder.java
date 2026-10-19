@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import com.hazelcast.internal.util.collection.IntHashSet;
 import com.hazelcast.jet.JetException;
 import com.hazelcast.jet.config.EdgeConfig;
 import com.hazelcast.jet.config.JobConfig;
+import com.hazelcast.jet.config.ProcessingGuarantee;
 import com.hazelcast.jet.core.DAG;
 import com.hazelcast.jet.core.Edge;
 import com.hazelcast.jet.core.ProcessorMetaSupplier;
@@ -62,7 +63,7 @@ import static com.hazelcast.internal.util.ConcurrencyUtil.CALLER_RUNS;
 import static com.hazelcast.internal.util.ExceptionUtil.sneakyThrow;
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
 import static com.hazelcast.jet.config.JobConfigArguments.KEY_REQUIRED_PARTITIONS;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.peel;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.peel;
 import static com.hazelcast.jet.impl.util.PrefixedLogger.prefix;
 import static com.hazelcast.jet.impl.util.PrefixedLogger.prefixedLogger;
 import static com.hazelcast.jet.impl.util.Util.checkSerializable;
@@ -88,6 +89,7 @@ public final class ExecutionPlanBuilder {
             long executionId,
             JobConfig jobConfig,
             long lastSnapshotId,
+            boolean restoredFromSnapshot,
             boolean isLightJob,
             Subject subject
     ) {
@@ -131,9 +133,12 @@ public final class ExecutionPlanBuilder {
 
         final Map<MemberInfo, ExecutionPlan> plans = new HashMap<>();
         int memberIndex = 0;
+        boolean requireSnapshotBeforeProcessing  = !isLightJob
+            && !restoredFromSnapshot
+            && requireSnapshotBeforeProcessing(jobConfig);
         for (MemberInfo member : partitionsByMember.keySet()) {
-            plans.put(member, new ExecutionPlan(partitionsByAddress, jobConfig, lastSnapshotId, memberIndex++,
-                    memberCount, isLightJob, subject, verticesIdAndOrder.count()));
+            plans.put(member, new ExecutionPlan(partitionsByAddress, jobConfig, lastSnapshotId,
+                requireSnapshotBeforeProcessing, memberIndex++, memberCount, isLightJob, subject, verticesIdAndOrder.count()));
         }
 
         final List<Address> addresses = toList(partitionsByMember.keySet(), MemberInfo::getAddress);
@@ -543,5 +548,13 @@ public final class ExecutionPlanBuilder {
         }
 
         return partitionAssignment;
+    }
+
+    /**
+     * Determines whether an initial snapshot required config is enabled.
+     */
+    private static boolean requireSnapshotBeforeProcessing(JobConfig jobConfig) {
+        return jobConfig.getProcessingGuarantee() != ProcessingGuarantee.NONE
+            && jobConfig.isRequireSnapshotBeforeProcessing();
     }
 }

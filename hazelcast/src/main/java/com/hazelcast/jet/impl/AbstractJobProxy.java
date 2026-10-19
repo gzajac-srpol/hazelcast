@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,9 +54,9 @@ import static com.hazelcast.internal.util.ExceptionUtil.withTryCatch;
 import static com.hazelcast.jet.core.JobStatus.COMPLETED;
 import static com.hazelcast.jet.core.JobStatus.FAILED;
 import static com.hazelcast.jet.core.JobStatus.RUNNING;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.peel;
-import static com.hazelcast.jet.impl.util.ExceptionUtil.rethrow;
-import static com.hazelcast.jet.impl.util.Util.memoizeConcurrent;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.peel;
+import static com.hazelcast.jet.impl.util.JetExceptionUtil.rethrow;
+import static com.hazelcast.internal.util.Memoizers.memoizeConcurrent;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
@@ -210,6 +210,18 @@ public abstract class AbstractJobProxy<C, M> implements Job {
         return future;
     }
 
+    @Override
+    public final void join() {
+        try {
+            Job.super.join();
+        } catch (CancellationException exception) {
+            if (exception.getCause() instanceof CancellationByUserException byUser) {
+                throw byUser;
+            }
+            throw exception;
+        }
+    }
+
     @Nonnull @Override
     public final JobStatus getStatus() {
         if (isLightJob()) {
@@ -238,10 +250,8 @@ public abstract class AbstractJobProxy<C, M> implements Job {
             try {
                 f.getNow(null);
                 throw new AssertionError("Future changed state");
-            } catch (CancellationByUserException byUser) {
-                return true;
             } catch (CancellationException e) {
-                return false;
+                return e instanceof CancellationByUserException || e.getCause() instanceof CancellationByUserException;
             }
         } else {
             return isUserCancelled0();

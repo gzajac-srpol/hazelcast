@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -549,7 +549,7 @@ public class ClientMapNearCacheTest extends NearCacheTestSupport {
             .collect(Collectors.toMap(Function.identity(), Function.identity()));
 
         IMap<Integer, Integer> clientMap = client.getMap(mapName);
-        hashMap.forEach(clientMap::put);
+        clientMap.putAll(hashMap);
         hashMap.keySet().forEach(clientMap::get);
 
         IMap<Integer, Integer> memberMap = member.getMap(mapName);

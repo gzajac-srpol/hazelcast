@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 package com.hazelcast.jet.kinesis;
 
-import com.amazonaws.services.kinesis.AmazonKinesisAsync;
 import com.hazelcast.jet.JetException;
 import com.hazelcast.jet.Job;
 import com.hazelcast.jet.core.JobStatus;
@@ -41,6 +40,7 @@ import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.localstack.LocalStackContainer.Service;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
 
 import java.io.IOException;
 import java.util.List;
@@ -49,6 +49,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 
 import static com.hazelcast.internal.util.ExceptionUtil.sneakyThrow;
+import static com.hazelcast.jet.TestedVersions.LOCALSTACK_IMAGE;
+import static com.hazelcast.jet.TestedVersions.TOXIPROXY_IMAGE;
 import static com.hazelcast.jet.Util.entry;
 import static com.hazelcast.jet.core.JobAssertions.assertThat;
 import static com.hazelcast.jet.kinesis.KinesisSinks.MAXIMUM_KEY_LENGTH;
@@ -57,7 +59,6 @@ import static com.hazelcast.test.DockerTestUtil.assumeDockerEnabled;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
-import static org.testcontainers.utility.DockerImageName.parse;
 
 @SuppressWarnings("StaticVariableName")
 @Category(NightlyTest.class)
@@ -69,7 +70,7 @@ public class KinesisFailureTest extends AbstractKinesisTest {
 
     private static ToxiproxyContainer toxiproxy;
     private static AwsConfig AWS_CONFIG;
-    private static AmazonKinesisAsync KINESIS;
+    private static KinesisAsyncClient KINESIS;
     private static Proxy PROXY;
     private static KinesisTestHelper HELPER;
 
@@ -86,15 +87,13 @@ public class KinesisFailureTest extends AbstractKinesisTest {
     public static void beforeClass() throws IOException {
         assumeDockerEnabled();
 
-        localStack = new LocalStackContainer(parse("localstack/localstack")
-                .withTag(LOCALSTACK_VERSION))
+        localStack = new LocalStackContainer(LOCALSTACK_IMAGE)
                 .withNetwork(NETWORK)
                 .withNetworkAliases(NETWORK_ALIAS)
                 .withServices(Service.KINESIS)
                 .withLogConsumer(new Slf4jLogConsumer(LOGGER));
         localStack.start();
-        toxiproxy = new ToxiproxyContainer(parse("ghcr.io/shopify/toxiproxy")
-                .withTag("2.5.0"))
+        toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
                 .withNetwork(NETWORK)
                 .withNetworkAliases(NETWORK_ALIAS)
                 .withLogConsumer(new Slf4jLogConsumer(LOGGER));
@@ -120,7 +119,7 @@ public class KinesisFailureTest extends AbstractKinesisTest {
     @AfterClass
     public static void afterClass() {
         if (KINESIS != null) {
-            KINESIS.shutdown();
+            KINESIS.close();
         }
 
         if (toxiproxy != null) {

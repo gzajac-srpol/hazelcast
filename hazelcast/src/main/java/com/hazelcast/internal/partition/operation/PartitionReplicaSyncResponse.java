@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package com.hazelcast.internal.partition.operation;
 
 import com.hazelcast.cluster.Address;
 import com.hazelcast.cluster.Member;
-import com.hazelcast.internal.cluster.impl.ClusterServiceImpl;
+import com.hazelcast.internal.cluster.ClusterService;
 import com.hazelcast.internal.partition.ChunkSerDeHelper;
 import com.hazelcast.internal.partition.ChunkSupplier;
 import com.hazelcast.internal.partition.IPartitionService;
@@ -45,7 +45,6 @@ import com.hazelcast.spi.impl.operationservice.OperationResponseHandler;
 import com.hazelcast.spi.impl.operationservice.PartitionAwareOperation;
 import com.hazelcast.spi.impl.operationservice.TargetAware;
 import com.hazelcast.spi.impl.operationservice.UrgentSystemOperation;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -70,7 +69,6 @@ import static com.hazelcast.spi.impl.operationservice.OperationResponseHandlerFa
  * <li>if the node is not a replica anymore it will clear the replica versions for the partition</li>
  * </ul>
  */
-@SuppressFBWarnings("EI_EXPOSE_REP")
 public class PartitionReplicaSyncResponse extends AbstractPartitionOperation
         implements PartitionAwareOperation, BackupOperation, UrgentSystemOperation,
         AllowedDuringPassiveState, TargetAware, Versioned {
@@ -161,7 +159,7 @@ public class PartitionReplicaSyncResponse extends AbstractPartitionOperation
             PartitionReplica replica = partition.getReplica(replicaIndex);
             Member targetMember = null;
             if (replica != null) {
-                ClusterServiceImpl clusterService = (ClusterServiceImpl) nodeEngine.getClusterService();
+                ClusterService clusterService = nodeEngine.getClusterService();
                 targetMember = clusterService.getMember(replica.address(), replica.uuid());
             }
             Throwable throwable = new WrongTargetException(nodeEngine.getLocalMember(), targetMember, partitionId,

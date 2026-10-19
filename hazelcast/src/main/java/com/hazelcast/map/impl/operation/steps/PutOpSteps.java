@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ public enum PutOpSteps implements IMapOpStep {
             StaticParams staticParams = state.getStaticParams();
             if (staticParams.isPutVanilla()) {
                 Object oldValue = ((DefaultRecordStore) state.getRecordStore())
-                        .loadValueOfKey(state.getKey(), state.getNow());
+                        .loadValue(state.getKey(), state.getNow());
                 state.setOldValue(oldValue);
             } else if (staticParams.isPutIfAbsent() || staticParams.isPutIfExists()) {
                 GetOpSteps.LOAD.runStep(state);

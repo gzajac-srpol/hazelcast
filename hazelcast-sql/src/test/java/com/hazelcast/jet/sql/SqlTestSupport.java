@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,6 +59,7 @@ import com.hazelcast.test.annotation.QuickTest;
 import org.apache.avro.Schema;
 import org.junit.After;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterEach;
 
 import javax.annotation.Nonnull;
 import java.time.Instant;
@@ -116,6 +117,7 @@ public abstract class SqlTestSupport extends SimpleTestInClusterSupport {
     private static final ILogger SUPPORT_LOGGER = Logger.getLogger(SqlTestSupport.class);
 
     @After
+    @AfterEach
     public void tearDown() {
         //noinspection ConstantConditions
         if (instances() == null) {
@@ -809,8 +811,8 @@ public abstract class SqlTestSupport extends SimpleTestInClusterSupport {
     }
 
     public static String toSQL(Object value) {
-        if (value instanceof Object[]) {
-            return "(" + Arrays.stream((Object[]) value).map(SqlTestSupport::toSQL).collect(joining(", ")) + ")";
+        if (value instanceof Object[] objects) {
+            return "(" + Arrays.stream(objects).map(SqlTestSupport::toSQL).collect(joining(", ")) + ")";
         }
         return value == null || value instanceof Boolean || value instanceof Number
                 ? String.valueOf(value) : "'" + value + "'";

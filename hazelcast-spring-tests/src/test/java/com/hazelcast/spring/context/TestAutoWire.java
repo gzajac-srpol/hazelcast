@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 /**
  * Tests if hazelcast instance can be used/injected in a class with an {@code @Autowired}
  * annotation. This test specifically for {@code @Autowired} case, not other annotations like
- * {@code @Autowired
+ * {@code @Autowired}
  * behave differently.
  * <p>
  * {@link org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ import static org.junit.Assert.assertNull;
 @Category({QuickTest.class, ParallelJVMTest.class})
 public class QueryIndexingTest extends HazelcastTestSupport {
 
-    private final int count = 2000;
+    private int count = 2000;
     private Map<Integer, Employee> employees;
 
     private TestHazelcastInstanceFactory nodeFactory;

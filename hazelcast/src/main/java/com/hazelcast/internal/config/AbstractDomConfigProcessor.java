@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,8 @@ import com.hazelcast.internal.util.StringUtil;
 import com.hazelcast.memory.Capacity;
 import com.hazelcast.memory.MemoryUnit;
 import org.w3c.dom.Node;
+
+import javax.annotation.Nonnull;
 
 import java.nio.ByteOrder;
 import java.util.HashMap;
@@ -92,6 +94,7 @@ public abstract class AbstractDomConfigProcessor implements DomConfigProcessor {
         this.strict = strict;
     }
 
+    @Nonnull
     protected String getTextContent(Node node) {
         return DomConfigHelper.getTextContent(node, domLevel3).trim();
     }
@@ -233,6 +236,8 @@ public abstract class AbstractDomConfigProcessor implements DomConfigProcessor {
                 fillCompactSerializers(child, compactSerializationConfig);
             } else if (matches("classes", name)) {
                 fillCompactSerializableClasses(child, compactSerializationConfig);
+            } else if (matches("zero-config-filter", name)) {
+                fillJavaSerializationFilter(child, compactSerializationConfig);
             }
         }
     }
@@ -317,6 +322,10 @@ public abstract class AbstractDomConfigProcessor implements DomConfigProcessor {
 
     protected void fillJavaSerializationFilter(final Node node, UserCodeNamespacesConfig userCodeNamespacesConfig) {
         userCodeNamespacesConfig.setClassFilterConfig(getJavaFilter(node));
+    }
+
+    protected void fillJavaSerializationFilter(final Node node, CompactSerializationConfig compactSerializationConfig) {
+        compactSerializationConfig.setZeroConfigFilter(getJavaFilter(node));
     }
 
     JavaSerializationFilterConfig getJavaFilter(final Node node) {

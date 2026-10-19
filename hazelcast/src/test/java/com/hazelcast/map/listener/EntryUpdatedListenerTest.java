@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ public class EntryUpdatedListenerTest extends HazelcastTestSupport {
     public boolean offload;
 
     /**
-     * @see <a href="https://hazelcast.atlassian.net/browse/HZ-2837">HZ-2837 - Field level mutation being taken by listener as
+     * @see <a href="https://hazelcast.atlassian.net/browse/HZOLD-2837">HZOLD-2837 - Field level mutation being taken by listener as
      *      old value but not being considered by interceptor - Strange Behaviour</a>
      */
     @Test
@@ -104,7 +104,7 @@ public class EntryUpdatedListenerTest extends HazelcastTestSupport {
 
         map.executeOnKey(key, entry -> {
             // Mutate the value in the map directly - expectation is that this will not be visible to anyone -
-            // https://hazelcast.atlassian.net/browse/HZ-2837?focusedCommentId=82402
+            // https://hazelcast.atlassian.net/browse/HZOLD-2837?focusedCommentId=82402
             entry.getValue().set(Integer.MAX_VALUE);
 
             // Also, update the map entry with a new value
@@ -185,7 +185,7 @@ public class EntryUpdatedListenerTest extends HazelcastTestSupport {
     /**
      * Constructs a {@link EntryUpdatedListener}, registering it via {@code listenerSetter}
      *
-     * @return a {@link CompleteableFuture} referencing the {@link EntryEvent.getOldValue()} from when the
+     * @return a {@link CompletableFuture} referencing the {@link EntryEvent#getOldValue()} from when the
      *         {@link EntryUpdatedListener} was fired
      */
     private static CompletableFuture<Integer> setMapListener(

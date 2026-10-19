@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ public class WriteBehindStore extends AbstractMapDataStore<Data, Object> {
     private final AtomicLong sequence = new AtomicLong();
 
     /**
-     * @see {@link com.hazelcast.config.MapStoreConfig#setWriteCoalescing(boolean)}
+     * @see com.hazelcast.config.MapStoreConfig#setWriteCoalescing(boolean)
      */
     private final boolean coalesce;
     private final int partitionId;
@@ -135,7 +135,7 @@ public class WriteBehindStore extends AbstractMapDataStore<Data, Object> {
         this.mapName = mapStoreContext.getMapName();
         this.operationService = nodeEngine.getOperationService();
         this.writeBehindQueue = coalesce ? createDefaultWriteBehindQueue()
-                : createBoundedWriteBehindQueue(mapStoreContext);
+                : createBoundedWriteBehindQueue(mapStoreContext.getMapServiceContext().getNodeWideUsedCapacityCounter());
         this.writeBehindProcessor = writeBehindProcessor;
         this.txnReservedCapacityCounter = initTxnReservedCapacityCounter();
     }

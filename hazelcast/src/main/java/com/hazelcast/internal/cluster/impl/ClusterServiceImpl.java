@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +67,6 @@ import com.hazelcast.transaction.TransactionOptions;
 import com.hazelcast.transaction.TransactionalObject;
 import com.hazelcast.transaction.impl.Transaction;
 import com.hazelcast.version.Version;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -175,9 +174,9 @@ public class ClusterServiceImpl implements ClusterService, ConnectionListener, M
     @Override
     public void init(NodeEngine nodeEngine, Properties properties) {
         long mergeFirstRunDelayMs = node.getProperties().getPositiveMillisOrDefault(ClusterProperty.MERGE_FIRST_RUN_DELAY_SECONDS,
-                DEFAULT_MERGE_RUN_DELAY_MILLIS);
+                () -> DEFAULT_MERGE_RUN_DELAY_MILLIS);
         long mergeNextRunDelayMs = node.getProperties().getPositiveMillisOrDefault(ClusterProperty.MERGE_NEXT_RUN_DELAY_SECONDS,
-                DEFAULT_MERGE_RUN_DELAY_MILLIS);
+                () -> DEFAULT_MERGE_RUN_DELAY_MILLIS);
 
         ExecutionService executionService = nodeEngine.getExecutionService();
         executionService.scheduleWithRepetition(SPLIT_BRAIN_HANDLER_EXECUTOR_NAME, new SplitBrainHandler(node),
@@ -787,7 +786,6 @@ public class ClusterServiceImpl implements ClusterService, ConnectionListener, M
         return eventService.deregisterListener(SERVICE_NAME, SERVICE_NAME, registrationId);
     }
 
-    @SuppressFBWarnings("BC_UNCONFIRMED_CAST")
     @Override
     public void dispatchEvent(MembershipEvent event, MembershipListener listener) {
         // Call with `null` namespace, which will fallback to a default Namespace if available
@@ -1109,7 +1107,8 @@ public class ClusterServiceImpl implements ClusterService, ConnectionListener, M
     @Override
     public void demoteLocalDataMember() {
         if (getClusterVersion().isUnknownOrLessThan(Versions.V5_4)) {
-            throw new UnsupportedOperationException("demoteLocalDataMember requires cluster version 5.4 or greater");
+            throw new UnsupportedOperationException(
+                    String.format("demoteLocalDataMember requires cluster version %s or greater", Versions.V5_4));
         }
 
         MemberImpl member = getLocalMember();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,6 +89,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -1117,6 +1118,25 @@ public class BasicMapTest extends HazelcastTestSupport {
     }
 
     @Test
+    public void testGetAll() {
+        int size = 100;
+        warmUpPartitions(instances);
+        IMap<Integer, Integer> map = getInstance().getMap("testGetAll");
+        Set<Integer> set = new HashSet<>();
+        Map<Integer, Integer> expected = new HashMap<>();
+        for (int i = 0; i < size; ++i) {
+            map.put(i, i + 1);
+            if (i % 2 == 0) {
+                set.add(i);
+                expected.put(i, i + 1);
+            }
+        }
+        for (HazelcastInstance instance : instances) {
+            assertThat(instance.<Integer, Integer>getMap("testGetAll").getAll(set)).containsExactlyEntriesOf(expected);
+        }
+    }
+
+    @Test
     public void testPutAllBackup() {
         int size = 100;
 
@@ -1895,7 +1915,7 @@ public class BasicMapTest extends HazelcastTestSupport {
         final IMap<String, Integer> sourceMap = getSourceMapFor_ForEach_Test();
         final IMap<String, Integer> targetMap = getTargetMapFor_ForEach_Test();
 
-        sourceMap.forEach(targetMap::put);
+        targetMap.putAll(sourceMap);
 
         assertEntriesEqual(sourceMap, targetMap);
     }

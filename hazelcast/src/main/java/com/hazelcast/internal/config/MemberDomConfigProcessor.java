@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -177,6 +177,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1004,8 +1005,24 @@ public class MemberDomConfigProcessor extends AbstractDomConfigProcessor {
         }
     }
 
-    private void handleAdvancedNetwork(Node node)
-            throws Exception {
+    private void handleAdvancedNetwork(Node node) throws Exception {
+        // XSD 1.0 limitation: with the existing <xs:choice maxOccurs="unbounded"> model,
+        // the schema can’t restrict these elements to a single occurrence without a
+        // backward-incompatible change (e.g., introducing wrapper elements).
+        // To stay compatible, we enforce uniqueness in the parser and fail fast with
+        // InvalidConfigurationException when a duplicate singleton is encountered.
+        final Set<String> singletonElements = Set.of(
+                "join",
+                "failure-detector",
+                "member-address-provider",
+                "member-server-socket-endpoint-config",
+                "client-server-socket-endpoint-config",
+                "rest-server-socket-endpoint-config",
+                "memcache-server-socket-endpoint-config"
+        );
+        final Set<String> seen = new HashSet<>(singletonElements.size());
+
+        // enabled attribute
         NamedNodeMap attributes = node.getAttributes();
         for (int a = 0; a < attributes.getLength(); a++) {
             Node att = attributes.item(a);
@@ -1013,8 +1030,15 @@ public class MemberDomConfigProcessor extends AbstractDomConfigProcessor {
                 config.getAdvancedNetworkConfig().setEnabled(getBooleanValue(att.getNodeValue()));
             }
         }
+
         for (Node child : childElements(node)) {
             String nodeName = cleanNodeName(child);
+            if (singletonElements.contains(nodeName) && !seen.add(nodeName)) {
+                throw new InvalidConfigurationException(
+                        "At most one " + nodeName + " is allowed under advanced-network."
+                );
+            }
+
             if (matches("join", nodeName)) {
                 handleJoin(child, true);
             } else if (matches("wan-endpoint-config", nodeName)) {
@@ -3163,6 +3187,8 @@ public class MemberDomConfigProcessor extends AbstractDomConfigProcessor {
                     cpSubsystemConfig.setDataLoadTimeoutSeconds(Integer.parseInt(getTextContent(child)));
                 } else if (matches("cp-member-priority", nodeName)) {
                     cpSubsystemConfig.setCPMemberPriority(Integer.parseInt(getTextContent(child)));
+                } else if (matches("auto-step-down-when-leader", nodeName)) {
+                    cpSubsystemConfig.setAutoStepDownWhenLeader(Boolean.parseBoolean(getTextContent(child)));
                 } else if (matches("map-limit", nodeName)) {
                     cpSubsystemConfig.setCPMapLimit(Integer.parseInt(getTextContent(child)));
                 }
@@ -3179,6 +3205,8 @@ public class MemberDomConfigProcessor extends AbstractDomConfigProcessor {
                     cpMapConfig.setName(getTextContent(subChild));
                 } else if (matches("max-size-mb", nodeName)) {
                     cpMapConfig.setMaxSizeMb(Integer.parseInt(getTextContent(subChild)));
+                } else if (matches("purge-enabled", nodeName)) {
+                    cpMapConfig.setPurgeEnabled(Boolean.parseBoolean(getTextContent(subChild)));
                 }
             }
             cpSubsystemConfig.addCPMapConfig(cpMapConfig);

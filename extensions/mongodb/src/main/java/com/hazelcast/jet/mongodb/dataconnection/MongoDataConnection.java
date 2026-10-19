@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import com.hazelcast.config.DataConnectionConfig;
 import com.hazelcast.core.HazelcastException;
 import com.hazelcast.dataconnection.DataConnectionBase;
 import com.hazelcast.dataconnection.DataConnectionResource;
-import com.hazelcast.jet.impl.util.ConcurrentMemoizingSupplier;
+import com.hazelcast.internal.util.concurrent.ConcurrentMemoizingSupplier;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoClientSettings.Builder;
@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import static com.hazelcast.internal.util.Memoizers.memoizeConcurrent;
 import static com.hazelcast.internal.util.Preconditions.checkState;
 import static com.hazelcast.jet.mongodb.impl.Mappers.defaultCodecRegistry;
 import static java.util.Collections.singletonList;
@@ -135,7 +136,7 @@ public class MongoDataConnection extends DataConnectionBase {
         "You have to provide connectionString property or combination of username, password and host");
 
         if (config.isShared()) {
-            this.mongoClientSup = new ConcurrentMemoizingSupplier<>(
+            this.mongoClientSup = memoizeConcurrent(
                     () -> new CloseableMongoClient(createClient(), this::release));
         }
     }

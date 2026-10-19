@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import com.hazelcast.config.MapConfig;
 import com.hazelcast.config.MapStoreConfig;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.internal.util.FilteringClassLoader;
+import com.hazelcast.jet.Job;
 import com.hazelcast.jet.sql.impl.connector.jdbc.JdbcSqlTestSupport;
 import com.hazelcast.map.EntryProcessor;
 import com.hazelcast.map.IMap;
@@ -31,19 +32,17 @@ import com.hazelcast.nio.serialization.genericrecord.GenericRecordBuilder;
 import com.hazelcast.sql.HazelcastSqlException;
 import com.hazelcast.sql.impl.QueryException;
 import com.hazelcast.test.ExceptionRecorder;
-import com.hazelcast.test.HazelcastSerialClassRunner;
+import com.hazelcast.test.HazelcastSerialTestExtension;
 import com.hazelcast.test.annotation.NightlyTest;
 import com.hazelcast.test.annotation.QuickTest;
-import com.hazelcast.test.jdbc.H2DatabaseProvider;
 import com.hazelcast.test.jdbc.TestDatabaseProvider;
 import org.example.Person;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.sql.SQLException;
 import java.util.Collections;
@@ -54,23 +53,21 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
+import static com.hazelcast.mapstore.GenericMapLoader.COLUMNS_PROPERTY;
 import static com.hazelcast.mapstore.GenericMapLoader.EXTERNAL_NAME_PROPERTY;
 import static com.hazelcast.mapstore.GenericMapLoader.LOAD_ALL_KEYS_PROPERTY;
 import static com.hazelcast.mapstore.GenericMapStore.DATA_CONNECTION_REF_PROPERTY;
 import static com.hazelcast.mapstore.GenericMapStore.TYPE_NAME_PROPERTY;
-import static com.hazelcast.test.DockerTestUtil.assumeDockerEnabled;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.util.Lists.newArrayList;
 
-@RunWith(HazelcastSerialClassRunner.class)
-@Category({QuickTest.class})
-public class GenericMapStoreIT extends JdbcSqlTestSupport {
+@QuickTest
+@ExtendWith(HazelcastSerialTestExtension.class)
+public abstract class GenericMapStoreIT extends JdbcSqlTestSupport {
 
     private static Config memberConfig;
-
-    @Rule
-    public TestName testName = new TestName();
 
     private String prefix = "generic_";
 
@@ -80,18 +77,16 @@ public class GenericMapStoreIT extends JdbcSqlTestSupport {
         this.prefix = prefix;
     }
 
-    @BeforeClass
-    public static void beforeClass() {
-        assumeDockerEnabled();
-        initializeBeforeClass(new H2DatabaseProvider());
+    protected static void initializeBeforeClass(TestDatabaseProvider testDatabaseProvider) {
+        initializeBeforeClass(testDatabaseProvider, new Config());
     }
 
-    protected static void initializeBeforeClass(TestDatabaseProvider testDatabaseProvider) {
+    protected static void initializeBeforeClass(TestDatabaseProvider testDatabaseProvider, Config config) {
         databaseProvider = testDatabaseProvider;
         dbConnectionUrl = databaseProvider.createDatabase(JdbcSqlTestSupport.class.getName());
 
         // Do not use small config to run with more threads and partitions
-        memberConfig = new Config()
+        memberConfig = config
                 // Need to set filtering class loader so the members don't deserialize into class but into GenericRecord
                 .setClassLoader(new FilteringClassLoader(newArrayList("org.example"), null))
                 .addDataConnectionConfig(
@@ -107,9 +102,9 @@ public class GenericMapStoreIT extends JdbcSqlTestSupport {
         sqlService = instance().getSql();
     }
 
-    @Before
-    public void setUp() throws Exception {
-        tableName = prefix + testName.getMethodName().toLowerCase(Locale.ROOT);
+    @BeforeEach
+    public void setUp(TestInfo testInfo) throws Exception {
+        tableName = prefix + testInfo.getTestMethod().orElseThrow().getName().toLowerCase(Locale.ROOT);
         createTable(tableName);
         insertItems(tableName, 1);
 
@@ -120,6 +115,36 @@ public class GenericMapStoreIT extends JdbcSqlTestSupport {
         mapStoreConfig.setProperty(TYPE_NAME_PROPERTY, "org.example.Person");
         mapConfig.setMapStoreConfig(mapStoreConfig);
         instance().getConfig().addMapConfig(mapConfig);
+    }
+
+    @AfterEach
+    public void dropTable() throws SQLException {
+        // ditch all jobs before dropping table
+        for (Job job : instances()[0].getJet().getJobs()) {
+            ditchJob(job, instances());
+        }
+        dropTable(tableName);
+    }
+
+    @Test
+    public void spacesInColumns() {
+        MapStoreConfig mapStoreConfig = new MapStoreConfig();
+        mapStoreConfig.setClassName(GenericMapStore.class.getName());
+        mapStoreConfig.setProperty(DATA_CONNECTION_REF_PROPERTY, TEST_DATABASE_REF);
+        mapStoreConfig.setProperty(EXTERNAL_NAME_PROPERTY, tableName);
+        mapStoreConfig.setProperty(TYPE_NAME_PROPERTY, "org.example.Person");
+        mapStoreConfig.setProperty(COLUMNS_PROPERTY, "  id, name ");
+
+        String mapName = tableName + "_spacesInColumns";
+        MapConfig mapConfig = new MapConfig(mapName);
+
+        mapConfig.setMapStoreConfig(mapStoreConfig);
+        instance().getConfig().addMapConfig(mapConfig);
+
+        HazelcastInstance client = client();
+        IMap<Integer, Person> map = client.getMap(mapName);
+        // triggers load
+       assertThat((Map<Integer, Person>) map).hasSize(1);
     }
 
     @Test
@@ -407,8 +432,8 @@ public class GenericMapStoreIT extends JdbcSqlTestSupport {
     /**
      * Regression test for https://github.com/hazelcast/hazelcast/issues/22567
      */
-    @Test(timeout = 180_000L)
-    @Category(NightlyTest.class)
+    @NightlyTest
+    @Timeout(value = 3, unit = MINUTES)
     public void testClear() {
         HazelcastInstance client = client();
         IMap<Integer, Person> map = client.getMap(tableName);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,13 @@
 package com.hazelcast.test;
 
 import com.hazelcast.cluster.Address;
+import com.hazelcast.config.ClassFilter;
+import com.hazelcast.config.CompactSerializationConfig;
 import com.hazelcast.config.Config;
+import com.hazelcast.config.JavaSerializationFilterConfig;
 import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.PersistenceClusterDataRecoveryPolicy;
+import com.hazelcast.config.SerializationConfig;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.config.YamlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
@@ -96,6 +100,7 @@ public class TestHazelcastInstanceFactory {
 
     private volatile UnaryOperator<NodeContext> nodeContextDelegator = UnaryOperator.identity();
     private volatile MetricsRule metricsRule;
+    private volatile boolean serializationRestrictionsDisabled;
 
     public TestHazelcastInstanceFactory() {
         this(0);
@@ -131,6 +136,11 @@ public class TestHazelcastInstanceFactory {
 
     public TestHazelcastInstanceFactory withMetricsRule(MetricsRule metricsRule) {
         this.metricsRule = metricsRule;
+        return this;
+    }
+
+    public TestHazelcastInstanceFactory withSerializationRestrictionsDisabled() {
+        this.serializationRestrictionsDisabled = true;
         return this;
     }
 
@@ -198,10 +208,20 @@ public class TestHazelcastInstanceFactory {
         }
         nodeContext = withUUID(nodeContextDelegator.apply(nodeContext), uuid);
         String instanceName = config != null ? config.getInstanceName() : null;
+        config = config == null ? new XmlConfigBuilder().build() : config;
+        setDefaultCompactSerializationRestrictions(config.getSerializationConfig());
         HazelcastInstance instance =
                 HazelcastInstanceFactory.newHazelcastInstance(config, instanceName, nodeContext);
         registerTestMetricsPublisher(instance);
         return instance;
+    }
+
+    protected final void setDefaultCompactSerializationRestrictions(SerializationConfig config) {
+        CompactSerializationConfig compactConfig = config.getCompactSerializationConfig();
+        if (!serializationRestrictionsDisabled && compactConfig.getZeroConfigFilter() == null) {
+            compactConfig.setZeroConfigFilter(
+                    new JavaSerializationFilterConfig().setBlacklist(new ClassFilter().addPrefixes("com.hazelcast.")));
+        }
     }
 
     private static NodeContext withUUID(NodeContext nodeContext, @Nullable UUID uuid) {
@@ -550,7 +570,7 @@ public class TestHazelcastInstanceFactory {
 
     /**
      * Returns a list of addresses with the {@code 127.0.0.1} host and starting
-     * with the {@value DEFAULT_INITIAL_PORT} port or an empty list in case mock
+     * with the {@value #DEFAULT_INITIAL_PORT} port or an empty list in case mock
      * network is not used or the requested count is {@code 0}.
      *
      * @param count the number of requested addresses

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import javax.security.auth.Subject;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
-
 import java.net.InetAddress;
 import java.security.AccessControlException;
 import java.security.Permission;
@@ -76,7 +75,6 @@ public interface SecurityContext {
      *
      * @param configuration JAAS configuration object
      * @param clusterName cluster name
-     * @param credentials credentials
      * @param remoteAddress address of the HTTP client
      * @return {@link LoginContext}
      * @throws LoginException in case of any exceptional case
@@ -99,7 +97,6 @@ public interface SecurityContext {
      * @throws AccessControlException if the specified permission has not been granted to the subject
      */
     void checkPermission(Subject subject, Permission permission) throws AccessControlException;
-
 
     /**
      * intercepts a request before process if any {@link SecurityInterceptor} configured

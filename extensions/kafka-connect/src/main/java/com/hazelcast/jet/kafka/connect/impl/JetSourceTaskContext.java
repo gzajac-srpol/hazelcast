@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Hazelcast Inc.
+ * Copyright 2026 Hazelcast Inc.
  *
  * Licensed under the Hazelcast Community License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package com.hazelcast.jet.kafka.connect.impl;
 
+import org.apache.kafka.common.metrics.PluginMetrics;
 import org.apache.kafka.connect.source.SourceTaskContext;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
 
@@ -26,11 +27,14 @@ import java.util.Map;
  * runtime.
  */
 class JetSourceTaskContext implements SourceTaskContext {
+    private final PluginMetrics pluginMetrics;
     private final Map<String, String> taskConfig;
     private final State state;
 
-    JetSourceTaskContext(Map<String, String> taskConfig,
+    JetSourceTaskContext(PluginMetrics pluginMetrics,
+                         Map<String, String> taskConfig,
                          State state) {
+        this.pluginMetrics = pluginMetrics;
         this.taskConfig = taskConfig;
         this.state = state;
     }
@@ -43,5 +47,10 @@ class JetSourceTaskContext implements SourceTaskContext {
     @Override
     public OffsetStorageReader offsetStorageReader() {
         return new JetSourceOffsetStorageReader(state);
+    }
+
+    @Override
+    public PluginMetrics pluginMetrics() {
+        return pluginMetrics;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ public interface MetadataInitializer {
      * @return metadata created from given binary data
      * @throws IOException
      */
-    Object createFromData(Data keyData) throws IOException;
+    Object createFromData(Data data) throws IOException;
 
     /**
      * Returns metadata for given object. Implementing class decides

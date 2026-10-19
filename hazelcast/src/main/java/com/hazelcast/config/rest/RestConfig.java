@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -679,7 +679,7 @@ public class RestConfig {
     /**
      * Returns the duration for which account will be locked out.
      *
-     * @since 6.0
+     * @since 5.6
      */
     public Duration getLockoutDuration() {
         return lockoutDuration;
@@ -687,7 +687,7 @@ public class RestConfig {
 
     /**
      * Sets the duration for which account will be locked out.
-     * @since 6.0
+     * @since 5.6
      */
     public RestConfig setLockoutDuration(Duration lockoutDuration) {
         checkNotNegative(lockoutDuration, "lockoutDuration cannot be negative.");
@@ -701,7 +701,7 @@ public class RestConfig {
      * Login attempts are remembered for {@link #lockoutDuration} (each failed login resets the timer)
      * and after max attempts is reached, the account will be locked for {@link #lockoutDuration}.
      *
-     * @since 6.0
+     * @since 5.6
      */
     public int getMaxLoginAttempts() {
         return maxLoginAttempts;
@@ -710,7 +710,7 @@ public class RestConfig {
     /**
      * Sets after how many failed logins the account will be locked out.
      * 0 means unlimited login attempts.
-     * @since 6.0
+     * @since 5.6
      */
     public RestConfig setMaxLoginAttempts(int maxLoginAttempts) {
         if (maxLoginAttempts < 0) {

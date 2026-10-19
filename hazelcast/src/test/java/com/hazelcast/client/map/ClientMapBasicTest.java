@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -908,7 +908,7 @@ public class ClientMapBasicTest extends AbstractClientMapTest {
 
     @Test
     public void testReplaceAllWithLambdaFunction() {
-        IMap<String, Integer>  map = client.getMap(randomString());
+        IMap<String, Integer> map = client.getMap(randomString());
         map.put("k1", 1);
         map.put("k2", 2);
         map.replaceAll((k, v) -> v * 10);

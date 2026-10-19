@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,10 +30,10 @@ import java.util.concurrent.RejectedExecutionException;
  * Durable implementation of {@link ExecutorService}.
  * DurableExecutor provides additional methods like executing tasks on a member who is owner of a specific key
  * DurableExecutor also provides a way to retrieve the result of an execution with the given taskId.
- *
- * @see ExecutorService
  * <p>
  * Supports split brain protection {@link SplitBrainProtectionConfig} since 3.10 in cluster versions 3.10 and higher.
+ *
+ * @see ExecutorService
  */
 public interface DurableExecutorService extends ExecutorService, DistributedObject {
 

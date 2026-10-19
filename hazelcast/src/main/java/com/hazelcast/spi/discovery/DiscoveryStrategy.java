@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ public interface DiscoveryStrategy {
      * @param allMembers Current state of Cluster data members, excluding lite members
      * @return a custom implementation of a <code>PartitionGroupStrategy</code> otherwise <code>null</code>
      * in case of the default implementation is to be used
-     * @since 4.2.1
+     * @since 4.2
      */
     default PartitionGroupStrategy getPartitionGroupStrategy(Collection<? extends Member> allMembers) {
         return null;

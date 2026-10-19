@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ public final class MapUtil {
     }
 
     /**
-     * Utility method that creates an {@link java.util.LinkedHashMap} with its initialCapacity calculated
+     * Utility method that creates an {@link ConcurrentHashMap} with its initialCapacity calculated
      * to minimize rehash operations
      */
     public static <K, V> ConcurrentMap<K, V> createConcurrentHashMap(int expectedMapSize) {

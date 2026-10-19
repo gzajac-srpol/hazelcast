@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ public class HazelcastNamespaceHandler extends NamespaceHandlerSupport {
     private static final String CPMAP = "cpmap";
     private static final String RELIABLE_TOPIC = "reliableTopic";
     private static final String PNCOUNTER = "PNCounter";
+    private static final String VECTOR_COLLECTION = "vectorCollection";
 
     static {
         CP_TYPES.add(LOCK);
@@ -74,7 +75,7 @@ public class HazelcastNamespaceHandler extends NamespaceHandlerSupport {
                 {MAP, MULTI_MAP, REPLICATED_MAP, QUEUE, TOPIC, SET, LIST, EXECUTOR_SERVICE,
                  DURABLE_EXECUTOR_SERVICE, SCHEDULED_EXECUTOR_SERVICE, RINGBUFFER, CARDINALITY_ESTIMATOR,
                  FLAKE_ID_GENERATOR, ATOMIC_LONG, ATOMIC_REFERENCE, COUNT_DOWN_LATCH, SEMAPHORE,
-                 LOCK, RELIABLE_TOPIC, PNCOUNTER, CPMAP};
+                 LOCK, RELIABLE_TOPIC, PNCOUNTER, CPMAP, VECTOR_COLLECTION};
         for (String type : types) {
             registerBeanDefinitionParser(type, new HazelcastTypeBeanDefinitionParser(type));
         }

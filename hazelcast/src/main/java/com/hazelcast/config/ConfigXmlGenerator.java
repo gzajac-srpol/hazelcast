@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -205,6 +205,7 @@ public class ConfigXmlGenerator {
         namespacesConfiguration(gen, config);
         restServerConfiguration(gen, config);
         vectorCollectionXmlGenerator(gen, config);
+        memberAttributesXmlGenerator(gen, config);
         xml.append("</hazelcast>");
 
         String xmlString = xml.toString();
@@ -528,18 +529,13 @@ public class ConfigXmlGenerator {
         }
         gen.node("check-class-def-errors", c.isCheckClassDefErrors());
         JavaSerializationFilterConfig javaSerializationFilterConfig = c.getJavaSerializationFilterConfig();
-        if (javaSerializationFilterConfig != null) {
-            gen.open("java-serialization-filter", "defaults-disabled", javaSerializationFilterConfig.isDefaultsDisabled());
-            appendFilterList(gen, "blacklist", javaSerializationFilterConfig.getBlacklist());
-            appendFilterList(gen, "whitelist", javaSerializationFilterConfig.getWhitelist());
-            gen.close();
-        }
-
+        ConfigXmlGeneratorHelper.appendClassFilter(gen, "java-serialization-filter", javaSerializationFilterConfig);
         ConfigXmlGeneratorHelper.compactSerialization(gen, c.getCompactSerializationConfig());
 
         // close serialization
         gen.close();
     }
+
 
     private static String classNameOrClass(String className, Class<?> clazz) {
         return !isNullOrEmpty(className) ? className
@@ -612,9 +608,6 @@ public class ConfigXmlGenerator {
 
     private void advancedNetworkConfigXmlGenerator(XmlGenerator gen, Config config) {
         AdvancedNetworkConfig netCfg = config.getAdvancedNetworkConfig();
-        if (!netCfg.isEnabled()) {
-            return;
-        }
 
         gen.open("advanced-network", "enabled", netCfg.isEnabled());
 
@@ -801,24 +794,25 @@ public class ConfigXmlGenerator {
 
     protected void factoryWithPropertiesXmlGenerator(XmlGenerator gen, String elementName,
                                                      AbstractBaseFactoryWithPropertiesConfig<?> factoryWithProps) {
-        if (factoryWithProps instanceof AbstractFactoryWithPropertiesConfig cfgWithEnabled) {
-            gen.open(elementName, "enabled", cfgWithEnabled.isEnabled());
-        } else {
-            gen.open(elementName);
-        }
         if (factoryWithProps != null) {
+            if (factoryWithProps instanceof AbstractFactoryWithPropertiesConfig cfgWithEnabled) {
+                gen.open(elementName, "enabled", cfgWithEnabled.isEnabled());
+            } else {
+                gen.open(elementName);
+            }
             gen.node("factory-class-name", factoryWithProps.getFactoryClassName())
                     .appendProperties(factoryWithProps.getProperties());
+            gen.close();
         }
-        gen.close();
     }
 
     private static void socketInterceptorConfigXmlGenerator(XmlGenerator gen, SocketInterceptorConfig socket) {
-        gen.open("socket-interceptor", "enabled", socket != null && socket.isEnabled());
-        if (socket != null) {
-            gen.node("class-name", classNameOrImplClass(socket.getClassName(), socket.getImplementation()))
-                    .appendProperties(socket.getProperties());
+        if (socket == null) {
+            return;
         }
+        gen.open("socket-interceptor", "enabled", socket.isEnabled());
+        gen.node("class-name", classNameOrImplClass(socket.getClassName(), socket.getImplementation()))
+                .appendProperties(socket.getProperties());
         gen.close();
     }
 
@@ -998,6 +992,7 @@ public class ConfigXmlGenerator {
                 .node("base-dir", cpSubsystemConfig.getBaseDir().getAbsolutePath())
                 .node("data-load-timeout-seconds", cpSubsystemConfig.getDataLoadTimeoutSeconds())
                 .node("cp-member-priority", cpSubsystemConfig.getCPMemberPriority())
+                .node("auto-step-down-when-leader", cpSubsystemConfig.isAutoStepDownWhenLeader())
                 .node("map-limit", cpSubsystemConfig.getCPMapLimit());
 
         RaftAlgorithmConfig raftAlgorithmConfig = cpSubsystemConfig.getRaftAlgorithmConfig();
@@ -1037,6 +1032,7 @@ public class ConfigXmlGenerator {
             gen.open("map")
                .node("name", cpMapConfig.getName())
                .node("max-size-mb", cpMapConfig.getMaxSizeMb())
+               .node("purge-enabled", cpMapConfig.isPurgeEnabled())
                .close();
         }
 
@@ -1069,12 +1065,7 @@ public class ConfigXmlGenerator {
         gen.open("sql")
                 .node("statement-timeout-millis", sqlConfig.getStatementTimeoutMillis())
                 .node("catalog-persistence-enabled", sqlConfig.isCatalogPersistenceEnabled());
-        if (filterConfig != null) {
-            gen.open("java-reflection-filter", "defaults-disabled", filterConfig.isDefaultsDisabled());
-            appendFilterList(gen, "blacklist", filterConfig.getBlacklist());
-            appendFilterList(gen, "whitelist", filterConfig.getWhitelist());
-            gen.close();
-        }
+        ConfigXmlGeneratorHelper.appendClassFilter(gen, "java-reflection-filter", filterConfig);
         gen.close();
     }
 
@@ -1214,23 +1205,6 @@ public class ConfigXmlGenerator {
         }
     }
 
-    private static void appendFilterList(XmlGenerator gen, String listName, ClassFilter classFilterList) {
-        if (classFilterList.isEmpty()) {
-            return;
-        }
-        gen.open(listName);
-        for (String className : classFilterList.getClasses()) {
-            gen.node("class", className);
-        }
-        for (String packageName : classFilterList.getPackages()) {
-            gen.node("package", packageName);
-        }
-        for (String prefix : classFilterList.getPrefixes()) {
-            gen.node("prefix", prefix);
-        }
-        gen.close();
-    }
-
     private static void integrityCheckerXmlGenerator(final XmlGenerator gen, final Config config) {
         gen.node(
                 "integrity-checker",
@@ -1268,13 +1242,7 @@ public class ConfigXmlGenerator {
         }
         gen.open("user-code-namespaces", "enabled", userCodeNamespacesConfig.isEnabled());
         JavaSerializationFilterConfig filterConfig = userCodeNamespacesConfig.getClassFilterConfig();
-        if (filterConfig != null) {
-            gen.open("class-filter", "defaults-disabled", filterConfig.isDefaultsDisabled());
-            appendFilterList(gen, "blacklist", filterConfig.getBlacklist());
-            appendFilterList(gen, "whitelist", filterConfig.getWhitelist());
-            gen.close();
-        }
-
+        ConfigXmlGeneratorHelper.appendClassFilter(gen, "class-filter", filterConfig);
         namespaceConfigurations(gen, config);
         gen.close();
     }
@@ -1314,6 +1282,17 @@ public class ConfigXmlGenerator {
                 .node("trust-certificate", ssl.getTrustCertificate())
                 .node("trust-certificate-key", ssl.getTrustCertificatePrivateKey())
                 .close();
+    }
+
+    private void memberAttributesXmlGenerator(XmlGenerator gen, Config config) {
+        MemberAttributeConfig memberAttributeConfig = config.getMemberAttributeConfig();
+        if (!memberAttributeConfig.getAttributes().isEmpty()) {
+            gen.open("member-attributes");
+            for (Map.Entry<String, String> attribute : memberAttributeConfig.getAttributes().entrySet()) {
+                gen.node("attribute", attribute.getValue(), "name", attribute.getKey());
+            }
+            gen.close();
+        }
     }
 
     public static void namespaceConfigurations(XmlGenerator gen, Config config) {
@@ -1395,7 +1374,7 @@ public class ConfigXmlGenerator {
         public XmlGenerator appendProperties(Properties props) {
             if (!props.isEmpty()) {
                 open("properties");
-                Set<Object> keys = props.keySet();
+                Set keys = props.keySet();
                 for (Object key : keys) {
                     node("property", props.getProperty(key.toString()), "name", key.toString());
                 }
@@ -1404,9 +1383,15 @@ public class ConfigXmlGenerator {
             return this;
         }
 
-        public XmlGenerator appendProperties(Map<String, ? extends Comparable> props, String tagName) {
+        /**
+         * Appends the properties as &lt;property name="key"&gt;value&lt;/property&gt; elements inside a &lt;properties&gt;
+         * It uses the default tag name as "properties"
+         * @param props Properties to be added
+         * @return The xml generator
+         */
+        public XmlGenerator appendProperties(Map<String, ? extends Comparable> props) {
             if (!MapUtil.isNullOrEmpty(props)) {
-                open(tagName);
+                open("properties");
                 for (Map.Entry<String, ?> entry : props.entrySet()) {
                     node("property", entry.getValue(), "name", entry.getKey());
                 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ import com.hazelcast.nio.MemberSocketInterceptor;
 import com.hazelcast.nio.ssl.SSLEngineFactory;
 import com.hazelcast.security.SecurityContext;
 import com.hazelcast.security.SecurityService;
+import com.hazelcast.security.impl.InternalSecurityContext;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.version.Version;
 
@@ -227,11 +228,21 @@ public interface NodeExtension {
     MemberSchemaService createSchemaService();
 
     /**
-     * Returns <tt>SecurityContext</tt> for this <tt>Node</tt> if available, otherwise returns null.
+     * Returns <tt>SecurityContext</tt> for this <tt>Node</tt> if available, otherwise logs a warning
+     * and returns null.
      *
      * @return security context
      */
-    SecurityContext getSecurityContext();
+    InternalSecurityContext getSecurityContext();
+
+    /**
+     * Returns <tt>SecurityContext</tt> for this <tt>Node</tt> if available, otherwise returns null
+     * without logging any warning.
+     *
+     * @return The {@link SecurityContext} instance if present else null
+     */
+    @Nullable
+    InternalSecurityContext getSecurityContextOrNull();
 
     /**
      * Creates a service which is an implementation of given type parameter.
@@ -408,6 +419,14 @@ public interface NodeExtension {
      * Creates the relevant {@link CPSubsystem}.
      */
     CPSubsystem createCPSubsystem(NodeEngine nodeEngine);
+
+    /**
+     * Returns {@code true} if the ADVANCED_CP feature is available
+     * (e.g. CPMap, CP group snapshots for client routing, auto step-down).
+     */
+    default boolean isAdvancedCPEnabled() {
+        return false;
+    }
 
     /**
      * Returns a JetService.

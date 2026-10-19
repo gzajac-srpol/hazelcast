@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 package com.hazelcast.jet.config;
+
+import com.hazelcast.jet.core.JobStatus;
+import com.hazelcast.spi.annotation.PrivateApi;
 
 /**
  * Some constants for the {@link JobConfig#getArgument(String)} method.
@@ -53,6 +56,33 @@ public final class JobConfigArguments {
     public static final String KEY_JOB_IS_SUSPENDABLE = "__jet.jobIsSuspendable";
 
     /**
+     * Job configuration argument key that controls whether an initial snapshot
+     * is required for the job.
+     * <p>
+     * If this argument is set to {@code true}, the following guarantees are provided:
+     * <ol>
+     *   <li>
+     *     An initial snapshot is triggered before the job starts normal execution,
+     *     regardless of the configured snapshot interval.
+     *   </li>
+     *   <li>
+     *     No entries are processed until the initial snapshot has completed successfully.
+     *   </li>
+     *   <li>
+     *     The job will not transition to the {@link JobStatus#RUNNING} state until the
+     *     initial snapshot has completed successfully.
+     *   </li>
+     * </ol>
+     * <p>
+     * Regular periodic snapshots are scheduled and executed according to the configured
+     * snapshot interval, unchanged from the default behavior.
+     * <p>
+     * Default value is {@code false}.
+     */
+    @PrivateApi
+    public static final String REQUIRE_SNAPSHOT_BEFORE_PROCESSING = "__jet.requireSnapshotBeforeProcessing";
+
+    /**
      * The key under which the associated User Code Namespace for this job is stored.
      * <p>
      * <b>NOTE:</b> The User Code Namespace defined by this key should only be used if there
@@ -65,6 +95,7 @@ public final class JobConfigArguments {
      * <p>
      * By default, this key will not exist and a User Code Namespace will not be used.
      */
+    @PrivateApi
     public static final String KEY_USER_CODE_NAMESPACE = "__jet.userCodeNamespace";
 
     private JobConfigArguments() {

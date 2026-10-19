@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,16 +24,8 @@ import com.hazelcast.internal.tpcengine.logging.TpcLogger;
  *
  * @see AbstractLogger
  */
+@SuppressWarnings("checkstyle:MethodCount")
 public interface ILogger extends TpcLogger {
-    /**
-     * Logs a LogEvent.
-     *
-     * @param logEvent the logEvent to log
-     * @deprecated Since 5.1, the method is unused
-     */
-    @Deprecated
-    void log(LogEvent logEvent);
-
     /**
      * Logs to {@link #fine(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
      * {@link String#format(String, Object...)}
@@ -127,4 +119,365 @@ public interface ILogger extends TpcLogger {
             finest(String.format(template, arg1, arg2, arg3, arg4, arg5, arg6));
         }
     }
+
+    // region info
+    /**
+     * Logs to {@link #info(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void info(String template, Object arg1) {
+        if (isInfoEnabled()) {
+            info(String.format(template, arg1));
+        }
+    }
+
+    /**
+     * Logs to {@link #info(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void info(String template, Object arg1, Object arg2) {
+        if (isInfoEnabled()) {
+            info(String.format(template, arg1, arg2));
+        }
+    }
+
+    /**
+     * Logs to {@link #info(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void info(String template, Object arg1, Object arg2, Object arg3) {
+        if (isInfoEnabled()) {
+            info(String.format(template, arg1, arg2, arg3));
+        }
+    }
+
+    /**
+     * Logs to {@link #info(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void info(String template, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (isInfoEnabled()) {
+            info(String.format(template, arg1, arg2, arg3, arg4));
+        }
+    }
+
+    /**
+     * Logs to {@link #info(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void info(String template, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (isInfoEnabled()) {
+            info(String.format(template, arg1, arg2, arg3, arg4, arg5));
+        }
+    }
+
+    /**
+     * Logs to {@link #info(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void info(String template, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6) {
+        if (isInfoEnabled()) {
+            info(String.format(template, arg1, arg2, arg3, arg4, arg5, arg6));
+        }
+    }
+    // endregion
+
+    // region warning
+    /**
+     * Logs to {@link #warning(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1));
+        }
+    }
+
+    /**
+     * @see #warning(String, Throwable)
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1, Throwable throwable) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1), throwable);
+        }
+    }
+
+    /**
+     * Logs to {@link #warning(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1, Object arg2) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1, arg2));
+        }
+    }
+
+    /**
+     * @see #warning(String, Throwable)
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1, Object arg2, Throwable throwable) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1, arg2), throwable);
+        }
+    }
+
+    /**
+     * Logs to {@link #warning(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1, Object arg2, Object arg3) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1, arg2, arg3));
+        }
+    }
+
+    /**
+     * @see #warning(String, Throwable)
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1, Object arg2, Object arg3, Throwable throwable) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1, arg2, arg3), throwable);
+        }
+    }
+
+    /**
+     * Logs to {@link #warning(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1, arg2, arg3, arg4));
+        }
+    }
+
+    /**
+     * @see #warning(String, Throwable)
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1, Object arg2, Object arg3, Object arg4, Throwable throwable) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1, arg2, arg3, arg4), throwable);
+        }
+    }
+
+    /**
+     * Logs to {@link #warning(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1, arg2, arg3, arg4, arg5));
+        }
+    }
+
+    /**
+     * @see #warning(String, Throwable)
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Throwable throwable) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1, arg2, arg3, arg4, arg5), throwable);
+        }
+    }
+
+    /**
+     * Logs to {@link #warning(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1, arg2, arg3, arg4, arg5, arg6));
+        }
+    }
+
+    /**
+     * @see #warning(String, Throwable)
+     *
+     * @since 6.0
+     */
+    default void warning(String template, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6,
+                         Throwable throwable) {
+        if (isWarningEnabled()) {
+            warning(String.format(template, arg1, arg2, arg3, arg4, arg5, arg6), throwable);
+        }
+    }
+    // endregion
+
+    // region severe
+    /**
+     * Logs to {@link #severe(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1));
+        }
+    }
+    /**
+     * Logs to {@link #severe(String, Throwable)} using a lazily evaluated {@code template} {@link String} with arguments,
+     * formatted using {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1, Throwable throwable) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1), throwable);
+        }
+    }
+
+    /**
+     * Logs to {@link #severe(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1, Object arg2) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1, arg2));
+        }
+    }
+
+    /**
+     * Logs to {@link #severe(String, Throwable)} using a lazily evaluated {@code template} {@link String} with arguments,
+     * formatted using {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1, Object arg2, Throwable throwable) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1, arg2), throwable);
+        }
+    }
+
+    /**
+     * Logs to {@link #severe(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1, Object arg2, Object arg3) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1, arg2, arg3));
+        }
+    }
+
+    /**
+     * Logs to {@link #severe(String, Throwable)} using a lazily evaluated {@code template} {@link String} with arguments,
+     * formatted using {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1, Object arg2, Object arg3, Throwable throwable) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1, arg2, arg3), throwable);
+        }
+    }
+
+    /**
+     * Logs to {@link #severe(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1, Object arg2, Object arg3, Object arg4) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1, arg2, arg3, arg4));
+        }
+    }
+
+    /**
+     * Logs to {@link #severe(String, Throwable)} using a lazily evaluated {@code template} {@link String} with arguments,
+     * formatted using {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1, Object arg2, Object arg3, Object arg4, Throwable throwable) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1, arg2, arg3, arg4), throwable);
+        }
+    }
+
+    /**
+     * Logs to {@link #severe(String)} using a lazily evaluated {@code template} {@link String} with arguments, formatted using
+     * {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1, arg2, arg3, arg4, arg5));
+        }
+    }
+
+    /**
+     * Logs to {@link #severe(String, Throwable)} using a lazily evaluated {@code template} {@link String} with arguments,
+     * formatted using {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Throwable throwable) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1, arg2, arg3, arg4, arg5), throwable);
+        }
+    }
+
+    /**
+     * Logs to {@link #severe(String, Throwable)} using a lazily evaluated {@code template} {@link String} with arguments,
+     * formatted using {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1, arg2, arg3, arg4, arg5, arg6));
+        }
+    }
+
+    /**
+     * Logs to {@link #severe(String, Throwable)} using a lazily evaluated {@code template} {@link String} with arguments,
+     * formatted using {@link String#format(String, Object...)}
+     *
+     * @since 6.0
+     */
+    default void severe(String template, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6,
+                        Throwable throwable) {
+        if (isSevereEnabled()) {
+            severe(String.format(template, arg1, arg2, arg3, arg4, arg5, arg6), throwable);
+        }
+    }
+    // endregion
 }

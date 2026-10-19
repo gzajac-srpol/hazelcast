@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -755,6 +755,8 @@ public class YamlMemberDomConfigProcessor extends MemberDomConfigProcessor {
                 fillCompactSerializers(child, compactSerializationConfig);
             } else if (matches("classes", name)) {
                 fillCompactSerializableClasses(child, compactSerializationConfig);
+            } else if (matches("zero-config-filter", name)) {
+                fillJavaSerializationFilter(child, compactSerializationConfig);
             }
         }
     }
@@ -997,6 +999,8 @@ public class YamlMemberDomConfigProcessor extends MemberDomConfigProcessor {
                 String nodeName = cleanNodeName(subChild);
                 if (matches("max-size-mb", nodeName)) {
                     cpMapConfig.setMaxSizeMb(Integer.parseInt(getTextContent(subChild)));
+                } else if (matches("purge-enabled", nodeName)) {
+                    cpMapConfig.setPurgeEnabled(Boolean.parseBoolean(getTextContent(subChild)));
                 }
             }
             cpSubsystemConfig.addCPMapConfig(cpMapConfig);

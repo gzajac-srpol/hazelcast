@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2025 Hazelcast Inc.
+  ~ Copyright 2026 Hazelcast Inc.
   ~
   ~ Licensed under the Hazelcast Community License (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -35,6 +35,11 @@
     <properties>
         <!-- needed for CheckStyle -->
         <main.basedir>${project.parent.parent.basedir}</main.basedir>
+        <!--
+			Configure Surefire executions to execute shared archunit tests 
+			https://maven.apache.org/surefire/maven-surefire-plugin/test-mojo.html#dependenciesToScan
+		-->
+        <dependenciesToScan>${project.groupId}:hazelcast-archunit-rules</dependenciesToScan>
     </properties>
 
     <build>
@@ -71,7 +76,7 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <groupId>io.github.download-maven-plugin</groupId>
                 <artifactId>download-maven-plugin</artifactId>
                 <executions>
                     <execution>
@@ -114,15 +119,17 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>download-ne4j-zip-file</id>
+                        <id>download-neo4j-jar-file</id>
                         <goals>
                             <goal>wget</goal>
                         </goals>
                         <configuration>
-                            <url>https://repository.hazelcast.com/download/tests/neo4j-kafka-connect-neo4j-2.0.1.zip
+                            <!-- The connector bundles netty with it, when bumping the version check compatibility with our netty dep -->
+                            <url>https://repository.hazelcast.com/download/tests/neo4j-kafka-connect-5.1.19.jar
                             </url>
                             <unpack>false</unpack>
                             <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
+                            <sha256>0e557923709c0a6b0d1ac6adb2fa4e9bc2a0de50e80bccc4b3f30804933c9447</sha256>
                         </configuration>
                     </execution>
                     <execution>
@@ -181,19 +188,29 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
-            <version>${kafka.version}</version>
         </dependency>
         <!-- This jar is often used by connectors; was transitively included in Kafka < 3.9, now it must be explicit -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>${kafka.version}</version>
         </dependency>
 
         <!-- Kafka Connect connectors use Jackson Core --> 
         <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
 
         <!-- Neo4J connector uses Guava dependency -->
@@ -227,7 +244,7 @@
         <dependency>
             <groupId>com.couchbase.client</groupId>
             <artifactId>java-client</artifactId>
-            <version>3.8.2</version>
+            <version>3.13.0</version>
             <scope>test</scope>
         </dependency>
         <!-- Neo4J-->
@@ -251,7 +268,8 @@
         <dependency>
             <groupId>io.lettuce</groupId>
             <artifactId>lettuce-core</artifactId>
-            <version>6.7.1.RELEASE</version>
+            <!-- When bumping this version check our netty version is compatible -->
+            <version>6.8.2.RELEASE</version>
             <scope>test</scope>
         </dependency>
         <!-- AWS SQS-->
@@ -275,11 +293,6 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mongodb</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

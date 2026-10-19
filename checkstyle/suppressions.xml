@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <!--
-  ~ Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+  ~ Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -122,6 +122,8 @@
 
     <!-- Instance -->
     <suppress checks="Javadoc(Method|Type|Variable)" files="com[\\/]hazelcast[\\/]instance[\\/]"/>
+    <suppress checks="FileLength"
+              files="com[\\/]hazelcast[\\/]instance[\\/]impl[\\/]EnterpriseNodeExtension"/>
 
     <!-- SPI -->
     <suppress checks="FileLength"
@@ -141,6 +143,10 @@
     <!-- CP Subsystem -->
     <suppress checks="FileLength" files="com[\\/]hazelcast[\\/]cp[\\/]internal[\\/]RaftService"/>
     <suppress checks="FileLength" files="com[\\/]hazelcast[\\/]cp[\\/]internal[\\/]raft[\\/]impl[\\/]RaftNodeImpl"/>
+    <suppress checks="FileLength" files="com[\\/]hazelcast[\\/]cp[\\/]internal[\\/]MetadataRaftGroupManager"/>
+    <!-- EE CP files in packages where OS already has package-info.java -->
+    <suppress checks="JavadocPackage" files="com[\\/]hazelcast[\\/]client[\\/]cp[\\/]internal[\\/]CPSubsystemEnterpriseImpl"/>
+    <suppress checks="JavadocPackage" files="com[\\/]hazelcast[\\/]client[\\/]cp[\\/]internal[\\/]datastructures[\\/]proxy[\\/]ClientRaftProxyEnterpriseFactory"/>
 
     <!-- Spring -->
     <suppress checks="FileLength" files="com[\\/]hazelcast[\\/]spring[\\/]HazelcastConfigBeanDefinitionParser"/>
@@ -186,6 +192,8 @@
     <suppress checks="OuterTypeNumber"
               files="src[\\/]test[\\/]java[\\/]com[\\/]hazelcast[\\/]internal[\\/]hotrestart[\\/]impl[\\/]di[\\/]DiContainerTest"/>
 
+    <suppress checks="LineLength" files="com[\\/]hazelcast[\\/]jet[\\/]core[\\/]processor[\\/]SourceProcessors.java"/>
+
     <!-- module-info.java -->
     <suppress checks="" files="[\\/]module-info"/>
 
@@ -202,6 +210,9 @@
 
     <!-- Javadoc suppressions -->
     <suppress checks="JavadocPackage" files="com[\\/]hazelcast[\\/]security[\\/]"/>
+    <!-- Split OS/EE package -->
+    <suppress checks="JavadocPackage" files="com[\\/]hazelcast[\\/]jet[\\/]pipeline[\\/][^\\/]*$"/>
+    <suppress checks="JavadocPackage" files="io[\\/]github[\\/]jbellis[\\/]jvector[\\/].*"/>
 
     <!-- Hot restart module -->
     <suppress checks="FileLength"
@@ -213,4 +224,7 @@
     <!-- TieredStore -->
     <suppress checks="FileLength" files="HybridLogImpl.java"/>
     <suppress checks="FileLength" files="Index.java"/>
+
+    <!-- NodeExtension -->
+    <suppress checks="FileLength" files="EnterpriseNodeExtension.java"/>
 </suppressions>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.PrimitiveIterator;
 import java.util.Set;
+import java.util.zip.ZipException;
 
 import static com.hazelcast.internal.util.MapUtil.createHashMap;
 
@@ -91,7 +92,9 @@ public final class SerializationUtil {
     }
 
     public static boolean isNullData(Data data) {
-        return data.dataSize() == 0 && data.getType() == SerializationConstants.CONSTANT_TYPE_NULL;
+        // in some edge cases (generally malformed) CONSTANT_TYPE_NULL can be used with non-zero length.
+        // it should be treated as null, to avoid multiple representations of null
+        return data.getType() == SerializationConstants.CONSTANT_TYPE_NULL;
     }
 
     static RuntimeException handleException(Throwable e) {
@@ -110,6 +113,12 @@ public final class SerializationUtil {
         }
         if (e instanceof HazelcastClientNotActiveException exception) {
             return exception;
+        }
+        if (e instanceof ZipException exception && exception.getMessage().contains("Not in GZIP format")) {
+            return new HazelcastSerializationException("Expected compressed objects, but received payload not in GZIP format. "
+                                                           + "Possible mismatch in serialization compression "
+                                                           + "configuration between members",
+                                                       exception);
         }
         return new HazelcastSerializationException(e);
     }
@@ -134,9 +143,9 @@ public final class SerializationUtil {
 
     public static SerializerAdapter createSerializerAdapter(Serializer serializer) {
         final SerializerAdapter s;
-        if (serializer instanceof StreamSerializer streamSerializer) {
+        if (serializer instanceof StreamSerializer<?> streamSerializer) {
             s = new StreamSerializerAdapter(streamSerializer);
-        } else if (serializer instanceof ByteArraySerializer arraySerializer) {
+        } else if (serializer instanceof ByteArraySerializer<?> arraySerializer) {
             s = new ByteArraySerializerAdapter(arraySerializer);
         } else {
             throw new IllegalArgumentException("Serializer " + serializer.getClass().getName()

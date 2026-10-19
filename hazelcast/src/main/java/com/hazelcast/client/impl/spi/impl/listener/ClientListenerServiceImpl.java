@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -123,8 +123,7 @@ public class ClientListenerServiceImpl
                 }
                 case ALL_MEMBERS -> connections.forEach(connection ->
                         doRemoteRegistrationSync(registration, connection, userRegistrationId));
-                default ->
-                        throw new IllegalArgumentException("Unsupported routing mode: " + routingMode);
+                default -> throw new IllegalArgumentException("Unsupported routing mode: " + routingMode);
             }
 
             return userRegistrationId;
@@ -207,12 +206,9 @@ public class ClientListenerServiceImpl
         ClientConnection connection = (ClientConnection) clientMessage.getConnection();
         EventHandler eventHandler = connection.getEventHandler(correlationId);
         if (eventHandler == null) {
-            if (logger.isFineEnabled()) {
-                logger.fine("No eventHandler for callId: %s, event: %s", correlationId, clientMessage);
-            }
+            logger.warning("No eventHandler for callId: " + correlationId + " event: " + clientMessage);
             return;
         }
-
         eventHandler.handle(clientMessage);
     }
 

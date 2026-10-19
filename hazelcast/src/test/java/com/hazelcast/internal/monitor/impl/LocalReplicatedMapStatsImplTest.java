@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,8 +88,8 @@ public class LocalReplicatedMapStatsImplTest {
         assertEquals(2, localReplicatedMapStats.getPutOperationCount());
         assertEquals(3, localReplicatedMapStats.getGetOperationCount());
         assertEquals(1, localReplicatedMapStats.getRemoveOperationCount());
-        assertEquals(1, localReplicatedMapStats.getValuesCallsCount());
-        assertEquals(1, localReplicatedMapStats.getEntrySetCallsCount());
+        assertEquals(1, localReplicatedMapStats.getValuesCallCount());
+        assertEquals(1, localReplicatedMapStats.getEntrySetCallCount());
         assertEquals(5632, localReplicatedMapStats.getTotalPutLatency());
         assertEquals(1247, localReplicatedMapStats.getTotalGetLatency());
         assertEquals(1238, localReplicatedMapStats.getTotalRemoveLatency());

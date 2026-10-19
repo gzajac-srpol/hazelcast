@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,12 +24,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-class SimpleMapLoader implements MapLoader<Integer, Integer> {
+public class SimpleMapLoader implements MapLoader<Integer, Integer> {
 
     final int size;
     final boolean slow;
 
-    SimpleMapLoader(int size, boolean slow) {
+    public SimpleMapLoader(int size, boolean slow) {
         this.size = size;
         this.slow = slow;
     }

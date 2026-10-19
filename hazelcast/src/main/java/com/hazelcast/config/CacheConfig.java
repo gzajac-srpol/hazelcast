@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025, Hazelcast, Inc. All Rights Reserved.
+ * Copyright (c) 2008-2026, Hazelcast, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import com.hazelcast.config.CacheSimpleConfig.ExpiryPolicyFactoryConfig.Duration
 import com.hazelcast.config.CacheSimpleConfig.ExpiryPolicyFactoryConfig.TimedExpiryPolicyFactoryConfig;
 import com.hazelcast.config.CacheSimpleConfig.ExpiryPolicyFactoryConfig.TimedExpiryPolicyFactoryConfig.ExpiryPolicyType;
 import com.hazelcast.internal.namespace.NamespaceUtil;
-import com.hazelcast.internal.namespace.impl.NodeEngineThreadLocalContext;
+import com.hazelcast.spi.impl.NodeEngineThreadLocalContext;
 import com.hazelcast.internal.nio.Bits;
 import com.hazelcast.internal.nio.ClassLoaderUtil;
 import com.hazelcast.internal.serialization.impl.SerializationUtil;
@@ -31,7 +31,6 @@ import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.impl.Versioned;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.spi.impl.SerializationServiceSupport;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.annotation.Nullable;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
@@ -85,7 +84,6 @@ public class CacheConfig<K, V> extends AbstractCacheConfig<K, V> implements Vers
     //      * ENTRY_COUNT with 10000 max entry count
     //      * LRU as eviction policy
     private EvictionConfig evictionConfig = new EvictionConfig();
-    @SuppressFBWarnings("SE_BAD_FIELD")
     private MergePolicyConfig mergePolicyConfig = new MergePolicyConfig();
     private MerkleTreeConfig merkleTreeConfig = new MerkleTreeConfig();
     private List<CachePartitionLostListenerConfig> partitionLostListenerConfigs;
@@ -738,9 +736,9 @@ public class CacheConfig<K, V> extends AbstractCacheConfig<K, V> implements Vers
     }
 
     protected void readFactories(ObjectDataInput in) throws IOException {
-        setCacheLoaderFactory(in.readObject());
-        setCacheWriterFactory(in.readObject());
-        setExpiryPolicyFactory(in.readObject());
+        setCacheLoaderFactory(ConfigDeserializationUtil.readObject(in, getClass(), "cacheLoaderFactory"));
+        setCacheWriterFactory(ConfigDeserializationUtil.readObject(in, getClass(), "cacheWriterFactory"));
+        setExpiryPolicyFactory(ConfigDeserializationUtil.readObject(in, getClass(), "expiryPolicyFactory"));
     }
 
     protected void writeListenerConfigurations(ObjectDataOutput out) throws IOException {
